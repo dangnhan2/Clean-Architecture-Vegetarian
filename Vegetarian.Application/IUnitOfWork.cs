@@ -7,6 +7,7 @@ namespace Vegetarian.Application
         IUserRepo User { get; }
         IRefreshTokenRepo RefreshToken { get; }
         IEmailOtpRepo EmailOtp { get; }
+        ICategoryRepo Category { get; }
         Task SaveChangeAsync();
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();
