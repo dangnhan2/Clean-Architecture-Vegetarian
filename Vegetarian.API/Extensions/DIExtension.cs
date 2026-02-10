@@ -1,4 +1,5 @@
-﻿using DotNetEnv;
+﻿using CloudinaryDotNet;
+using DotNetEnv;
 using Hangfire;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Options;
@@ -7,15 +8,18 @@ using System.Security.Principal;
 using Vegetarian.Application;
 using Vegetarian.Application.Implements.Auth;
 using Vegetarian.Application.Implements.Caching;
+using Vegetarian.Application.Implements.External_Service;
 using Vegetarian.Application.Implements.Hangfire;
 using Vegetarian.Application.Implements.Interface;
 using Vegetarian.Application.Implements.Services;
 using Vegetarian.Application.Repositories;
 using Vegetarian.Application.Services.External_Service;
 using Vegetarian.Infrastructure;
+using Vegetarian.Infrastructure.Options;
 using Vegetarian.Infrastructure.Repositories;
 using Vegetarian.Infrastructure.Services.Caching;
 using Vegetarian.Infrastructure.Services.Email;
+using Vegetarian.Infrastructure.Services.Storage;
 using Vegetarian.Infrastructure.Services.Token;
 
 namespace Vegetarian.API.Extensions
@@ -35,8 +39,11 @@ namespace Vegetarian.API.Extensions
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<ICategoryRepo, CategoryRepo>();
             services.AddScoped<ICategoryService, CategoryService>();
+            services.AddScoped<IMenuRepo, MenuRepo>();
+            services.AddScoped<IMenuService, MenuService>();
             
             services.AddTransient<IEmailService, EmailService>();
+            services.AddTransient<ICloudinaryService, CloudinaryService>();
 
             services.AddSingleton<ICachingService, CachingService>();
             services.AddSingleton<IConnectionMultiplexer>(sp =>
@@ -45,18 +52,18 @@ namespace Vegetarian.API.Extensions
                 return ConnectionMultiplexer.Connect(configuration);
             });
 
-            //services.AddSingleton<Cloudinary>(cd =>
-            //{
-            //    var options = cd.GetRequiredService<IOptions<CloudinaryOptions>>().Value;
+            services.AddSingleton<Cloudinary>(cd =>
+            {
+                var options = cd.GetRequiredService<IOptions<CloudinaryOptions>>().Value;
 
-            //    var account = new Account(
-            //         options.CloudName,
-            //         options.ApiKey,
-            //         options.ApiSecret
-            //        );
+                var account = new Account(
+                     options.CloudName,
+                     options.ApiKey,
+                     options.ApiSecret
+                    );
 
-            //    return new Cloudinary(account);
-            //});
+                return new Cloudinary(account);
+            });
 
             //services.AddSingleton<PayOS>(p =>
             //{
