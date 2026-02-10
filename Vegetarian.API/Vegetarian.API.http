@@ -1,0 +1,6 @@
+@Vegetarian.API_HostAddress = http://localhost:5055
+
+GET {{Vegetarian.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

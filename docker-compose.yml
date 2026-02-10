@@ -1,0 +1,6 @@
+services:
+  vegetarian.api:
+    image: ${DOCKER_REGISTRY-}vegetarianapi
+    build:
+      context: .
+      dockerfile: Vegetarian.API/Dockerfile
