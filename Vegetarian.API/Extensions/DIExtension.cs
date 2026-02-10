@@ -6,11 +6,15 @@ using StackExchange.Redis;
 using System.Security.Principal;
 using Vegetarian.Application;
 using Vegetarian.Application.Implements.Auth;
+using Vegetarian.Application.Implements.Caching;
 using Vegetarian.Application.Implements.Hangfire;
+using Vegetarian.Application.Implements.Interface;
+using Vegetarian.Application.Implements.Services;
 using Vegetarian.Application.Repositories;
 using Vegetarian.Application.Services.External_Service;
 using Vegetarian.Infrastructure;
 using Vegetarian.Infrastructure.Repositories;
+using Vegetarian.Infrastructure.Services.Caching;
 using Vegetarian.Infrastructure.Services.Email;
 using Vegetarian.Infrastructure.Services.Token;
 
@@ -29,9 +33,12 @@ namespace Vegetarian.API.Extensions
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IHangfireService, HangfireService>();
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<ICategoryRepo, CategoryRepo>();
+            services.AddScoped<ICategoryService, CategoryService>();
             
             services.AddTransient<IEmailService, EmailService>();
 
+            services.AddSingleton<ICachingService, CachingService>();
             services.AddSingleton<IConnectionMultiplexer>(sp =>
             {
                 var configuration = $"{Env.GetString("REDIS")},abortConnect=false";

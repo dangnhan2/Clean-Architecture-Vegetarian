@@ -20,6 +20,7 @@ namespace Vegetarian.Infrastructure
             User = new UserRepo(_context);           
             RefreshToken = new RefreshTokenRepo(_context);
             EmailOtp = new EmailOtpRepo(_context);
+            Category = new CategoryRepo(_context);
         }
 
         public IUserRepo User { get; }
@@ -27,6 +28,8 @@ namespace Vegetarian.Infrastructure
         public IRefreshTokenRepo RefreshToken { get; }
 
         public IEmailOtpRepo EmailOtp { get; }
+
+        public ICategoryRepo Category { get; }
 
         public Task BeginTransactionAsync()
         {
