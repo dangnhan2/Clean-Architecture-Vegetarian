@@ -2,17 +2,24 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using System.Security.Claims;
+using Vegetarian.API.Extensions;
+using Vegetarian.Infrastructure.Data;
 using Vegetarian.Infrastructure.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+builder.Services.AddExtensions();
+
 builder.Services.Configure<EmailOptions>(
     builder.Configuration.GetSection("EmailOptions"));
 
 builder.Services.Configure<GoogleAuthOptions>(
     builder.Configuration.GetSection("GoogleAuthOptions"));
+
+builder.Services.Configure<CloudinaryOptions>(
+    builder.Configuration.GetSection("CloudinaryOptions"));
 
 builder.Services.AddAuthentication(opts =>
 {
@@ -52,6 +59,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+await app.SeedAsync();
+await app.ApplyMigrationsAsync();
 
 app.UseHttpsRedirection();
 
