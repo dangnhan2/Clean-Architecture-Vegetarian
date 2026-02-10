@@ -1,6 +1,43 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
+using System.Security.Claims;
+using Vegetarian.Infrastructure.Options;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+
+builder.Services.Configure<EmailOptions>(
+    builder.Configuration.GetSection("EmailOptions"));
+
+builder.Services.Configure<GoogleAuthOptions>(
+    builder.Configuration.GetSection("GoogleAuthOptions"));
+
+builder.Services.AddAuthentication(opts =>
+{
+    opts.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    opts.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+})
+    .AddCookie()
+    .AddGoogle((opts) =>
+    {
+        var googleOptions = builder.Configuration
+          .GetSection("GoogleAuthOptions")
+          .Get<GoogleAuthOptions>();
+
+        opts.ClientId = googleOptions.ClientId;
+        opts.ClientSecret = googleOptions.ClientSecret;
+        opts.CallbackPath = "/signin-google";
+        opts.SaveTokens = true;
+
+        opts.Scope.Add("profile");
+        opts.Scope.Add("email");
+
+        opts.ClaimActions.MapJsonKey(ClaimTypes.Email, "email");
+        opts.ClaimActions.MapJsonKey("picture", "picture");
+    });
+
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
