@@ -10,7 +10,8 @@ namespace Vegetarian.API.Extensions
             services.AddJwtConfig();
             services.AddDI();
             services.AddSwaggerConfigure();
-            services.AddSignalR();
+            services.AddConnection();
+            //services.AddSignalR();
             return services;
         }
     }

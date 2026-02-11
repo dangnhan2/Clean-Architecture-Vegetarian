@@ -1,6 +1,102 @@
+version: '3.8'
+
 services:
+  vegetarian.database:  
+    image: postgres:15-alpine
+    container_name: vegetarian.database
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+  
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: vegetarian.dbadmin
+    restart: always
+    ports:
+      - "8082:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+    - app_network 
+   
+  vegetarian.cache:
+    image: redis:latest
+    container_name: vegetarian.cache
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_network
+
   vegetarian.api:
     image: ${DOCKER_REGISTRY-}vegetarianapi
     build:
       context: .
       dockerfile: Vegetarian.API/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      - "vegetarian.database"
+      - "vegetarian.cache"
+    
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+      - ConnectionStrings__DefaultConnection=${DefaultConnection}
+      - REDIS=${REDIS}
+
+      - CloudinaryOptions__CloudName=${CloudinaryOptions__CloudName}
+      - CloudinaryOptions__ApiKey=${CloudinaryOptions__ApiKey}
+      - CloudinaryOptions__ApiSecret=${CloudinaryOptions__ApiSecret}
+      
+      - SECRET_KEY=${SECRET_KEY}
+      - ISSUER=${ISSUER}
+      - AUDIENCE=${AUDIENCE}
+      
+      - EmailOptions__SMTP_HOST=${EmailOptions__SMTP_HOST}
+      - EmailOptions__SMTP_PORT=${EmailOptions__SMTP_PORT}
+      - EmailOptions__SMTP_ENABLE_SSL=${EmailOptions__SMTP_ENABLE_SSL}
+      - EmailOptions__SMTP_USERNAME=${EmailOptions__SMTP_USERNAME}
+      - EmailOptions__SMTP_PASSWORD=${EmailOptions__SMTP_PASSWORD}
+      - EmailOptions__SMTP_FROM_EMAIL=${EmailOptions__SMTP_FROM_EMAIL}
+      - EmailOptions__SMTP_FROM_NAME=${EmailOptions__SMTP_FROM_NAME}
+      
+      - PayOsOptions__ClientId=${PayOsOptions__ClientId}
+      - PayOsOptions__ApiKey=${PayOsOptions__ApiKey}
+      - PayOsOptions__ChecksumKey=${PayOsOptions__ChecksumKey}
+      
+      - GoogleAuthOptions__ClientId=${GoogleAuthOptions__ClientId}
+      - GoogleAuthOptions__ClientSecret=${GoogleAuthOptions__ClientSecret}
+
+      - DEFAULT_AVATAR=${DEFAULT_AVATAR}
+      - Frontend__URI=${Frontend__URI}
+      
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    networks:      
+      - app_network
+
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin-data:

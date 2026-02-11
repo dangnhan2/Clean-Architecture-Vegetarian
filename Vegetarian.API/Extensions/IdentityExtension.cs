@@ -1,15 +1,10 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Vegetarian.Domain.Models;
+using Vegetarian.Infrastructure.Data;
 
-namespace Vegetarian.Infrastructure.Data
+namespace Vegetarian.API.Extensions
 {
-    public static class IdentityConfiguration
+    public static class IdentityExtension
     {
         public static IServiceCollection AddIdentity(this IServiceCollection services)
         {

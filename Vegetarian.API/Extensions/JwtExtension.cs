@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Vegetarian.Domain.Models;
+using Vegetarian.Infrastructure.Data;
 
 namespace Vegetarian.API.Extensions
 {
@@ -11,7 +13,6 @@ namespace Vegetarian.API.Extensions
         public static IServiceCollection AddJwtConfig(this IServiceCollection services)
         {
             Env.Load();
-
             // Cấu hình mật khẩu
             services.Configure<IdentityOptions>(opts =>
             {
@@ -48,20 +49,20 @@ namespace Vegetarian.API.Extensions
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Env.GetString("SECRET_KEY")))
                 };
 
-                config.Events = new JwtBearerEvents
-                {
-                    OnMessageReceived = conntext =>
-                    {
-                        var accessToken = conntext.Request.Query["accessToken"];
+                //config.Events = new JwtBearerEvents
+                //{
+                //    OnMessageReceived = conntext =>
+                //    {
+                //        var accessToken = conntext.Request.Query["accessToken"];
 
-                        if (!string.IsNullOrEmpty(accessToken) && conntext.HttpContext.Request.Path.StartsWithSegments("/hubs"))
-                        {
-                            conntext.Token = accessToken;
-                        }
+                //        if (!string.IsNullOrEmpty(accessToken) && conntext.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                //        {
+                //            conntext.Token = accessToken;
+                //        }
 
-                        return Task.CompletedTask;
-                    }
-                };
+                //        return Task.CompletedTask;
+                //    }
+                //};
             });
             return services;
         }
