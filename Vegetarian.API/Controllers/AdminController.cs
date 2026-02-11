@@ -13,13 +13,19 @@ namespace Vegetarian.API.Controllers
     {
         private readonly ICategoryService _categoryService;
         private readonly IVoucherService _voucherService;
+        private readonly IOrderService _orderService;
+        private readonly IMenuService _menuService;
 
         public AdminController(
             ICategoryService categoryService,
-            IVoucherService voucherService)
+            IVoucherService voucherService,
+            IOrderService orderService,
+            IMenuService menuService)
         {
             _categoryService = categoryService;
             _voucherService = voucherService;
+            _orderService = orderService;
+            _menuService = menuService;
         }
 
         #region category endpoints
@@ -88,6 +94,52 @@ namespace Vegetarian.API.Controllers
         {
             await _voucherService.DeleteAsync(id);
             var response = ApiResponse<string>.Success("Xóa thành công", "", StatusCodes.Status200OK);
+            return Ok(response);
+        }
+        #endregion
+
+
+        #region order endpoints
+        [HttpGet("orders")]
+        public async Task<IActionResult> GetOrders([FromQuery] OrderParams orderParams)
+        {
+            var result = await _orderService.GetAllAsync(orderParams);
+            var response = ApiResponse<PagingResponse<OrderDto>>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
+        }
+        #endregion
+
+
+        #region menu endpoints
+        [HttpGet("menus")]
+        public async Task<IActionResult> GetMenus([FromQuery] MenuParams menuParams)
+        {
+            var result = await _menuService.GetAllMenusAsync(menuParams);
+            var response = ApiResponse<PagingResponse<MenuDto>>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
+        }
+
+        [HttpPost("menu")]
+        public async Task<IActionResult> AddMenu([FromForm] MenuRequestDto request)
+        {
+            await _menuService.AddMenuAsync(request);
+            var response = ApiResponse<dynamic>.Success("Thêm mới thành công", "", StatusCodes.Status201Created);
+            return CreatedAtAction(nameof(GetMenus), response);
+        }
+
+        [HttpPut("menu/{id}")]
+        public async Task<IActionResult> UpdateMenu(Guid id, [FromForm] MenuRequestDto request)
+        {
+            await _menuService.UpdateMenuAsync(id, request);
+            var response = ApiResponse<dynamic>.Success("Cập nhật thành công", "", StatusCodes.Status200OK);
+            return Ok(response);
+        }
+
+        [HttpDelete("menu/{id}")]
+        public async Task<IActionResult> DeleteMenu(Guid id)
+        {
+            await _menuService.DeleteMenuAsync(id);
+            var response = ApiResponse<dynamic>.Success("Xóa thành công", "", StatusCodes.Status200OK);
             return Ok(response);
         }
         #endregion

@@ -5,6 +5,7 @@ using System.Security.Claims;
 using Vegetarian.API.Extensions;
 using Vegetarian.Infrastructure.Data;
 using Vegetarian.Infrastructure.Options;
+using Vegetarian.Infrastructure.Services.SignalR.SignalR_Hub;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,9 @@ builder.Services.Configure<GoogleAuthOptions>(
 
 builder.Services.Configure<CloudinaryOptions>(
     builder.Configuration.GetSection("CloudinaryOptions"));
+
+builder.Services.Configure<PayOsOptions>(
+    builder.Configuration.GetSection("PayOsOptions"));
 
 builder.Services.AddAuthentication(opts =>
 {
@@ -67,6 +71,7 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapHub<NotificationHub>("/hubs/notification");
 app.MapControllers();
 
 app.Run();

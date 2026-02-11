@@ -25,6 +25,8 @@ namespace Vegetarian.Infrastructure
             Cart = new CartRepo(_context);
             Voucher = new VoucherRepo(_context);
             VoucherRedemption = new VoucherRedemptionRepo(_context);
+            Order = new OrderRepo(_context);
+            Notification = new NotificationRepo(_context);
         }
 
         public IUserRepo User { get; }
@@ -42,6 +44,10 @@ namespace Vegetarian.Infrastructure
         public IVoucherRepo Voucher { get; }
 
         public IVoucherRedemptionRepo VoucherRedemption { get; }
+
+        public IOrderRepo Order { get; }
+
+        public INotificationRepo Notification { get; }
 
         public async Task BeginTransactionAsync()
         {

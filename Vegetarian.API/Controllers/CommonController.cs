@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Vegetarian.Application.Dtos.QueryParams;
 using Vegetarian.Application.Dtos.Request;
 using Vegetarian.Application.Dtos.Response;
 using Vegetarian.Application.Implements.Interface;
@@ -14,15 +15,21 @@ namespace Vegetarian.API.Controllers
         private readonly ICategoryService _categoryService;
         private readonly ICartService _cartService;
         private readonly IVoucherService _voucherService;
+        private readonly IOrderService _orderService;
+        private readonly IMenuService _menuService;
 
         public CommonController(
             ICategoryService categoryService,
             ICartService cartService,
-            IVoucherService voucherService)
+            IVoucherService voucherService,
+            IOrderService orderService,
+            IMenuService menuService)
         {
             _categoryService = categoryService;
             _cartService = cartService;
             _voucherService = voucherService;
+            _orderService = orderService;
+            _menuService = menuService;
         }
 
         #region category endpoints
@@ -70,6 +77,86 @@ namespace Vegetarian.API.Controllers
         {
             var result = await _voucherService.ValidateVoucherAsync(request);
             var response = ApiResponse<dynamic>.Success("Áp dụng voucher thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
+        }
+        #endregion
+
+
+        #region order enpoints
+        [HttpPost("order/qr")]
+        public async Task<IActionResult> CreateOrderWithQR([FromBody] OrderRequestDto request)
+        {
+            var result = await _orderService.CreateOrderByQRAsync(request);
+            var response = ApiResponse<dynamic>.Success("Tạo đơn thành công", result, StatusCodes.Status201Created);
+            return CreatedAtAction(null, response);
+        }
+
+        [HttpPost("order/cod")]
+        public async Task<IActionResult> CreateOrderWithCOD([FromBody] OrderRequestDto request)
+        {
+            var result = await _orderService.CreateOrderByCODAsync(request);
+            var response = ApiResponse<int>.Success("Tạo đơn thành công", result, StatusCodes.Status201Created);
+            return CreatedAtAction(null, response);
+        }
+        #endregion
+
+
+        #region order history endpoint
+        [HttpGet("user/{id}/orders")]
+        public async Task<IActionResult> GetAllOrderByCustomer(Guid id, [FromQuery] OrderParams orderParams)
+        {
+            var result = await _orderService.GetAllAsyncByCustomer(id, orderParams);
+            var response = ApiResponse<PagingResponse<OrderDto>>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
+        }
+        #endregion
+
+
+        #region menu endpoints
+        [HttpGet("menus")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetMenus([FromQuery] MenuParams menuParams)
+        {
+            var result = await _menuService.GetAllMenusAsync(menuParams);
+            var response = ApiResponse<PagingResponse<MenuDto>>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
+        }
+
+        [HttpGet("menu/{id}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetMenuById(Guid id)
+        {
+            var result = await _menuService.GetMenuByIdAsync(id);
+            var response = ApiResponse<MenuDto>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
+        }
+
+        [HttpGet("menus/featured")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetFeaturedMenus()
+        {
+            var result = await _menuService.GetFeaturedMenusAsync();
+            var response = ApiResponse<dynamic>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+
+            return Ok(response);
+        }
+
+        [HttpGet("menus/{id}/related")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetRelatedMenus(Guid id)
+        {
+            var result = await _menuService.GetRelatedMenusAsync(id);
+            var response = ApiResponse<dynamic>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+
+            return Ok(response);
+        }
+
+        [HttpGet("menus/onsale")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetMenusOnSale([FromQuery] MenuParams menuParams)
+        {
+            var result = await _menuService.GetAllMenusOnSaleAsync(menuParams);
+            var response = ApiResponse<PagingResponse<MenuDto>>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
             return Ok(response);
         }
         #endregion
