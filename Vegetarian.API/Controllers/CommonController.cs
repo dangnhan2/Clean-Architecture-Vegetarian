@@ -13,13 +13,16 @@ namespace Vegetarian.API.Controllers
     {
         private readonly ICategoryService _categoryService;
         private readonly ICartService _cartService;
+        private readonly IVoucherService _voucherService;
 
         public CommonController(
             ICategoryService categoryService,
-            ICartService cartService)
+            ICartService cartService,
+            IVoucherService voucherService)
         {
             _categoryService = categoryService;
             _cartService = cartService;
+            _voucherService = voucherService;
         }
 
         #region category endpoints
@@ -49,6 +52,25 @@ namespace Vegetarian.API.Controllers
             await _cartService.AddToCartAsync(request);
             var response = ApiResponse<string>.Success("Thêm item thành công", "", StatusCodes.Status201Created);
             return CreatedAtAction(null, response);
+        }
+        #endregion
+
+
+        #region voucher endpoints
+        [HttpGet("user/vouchers")]
+        public async Task<IActionResult> GetAllVoucherByCustomer()
+        {
+            var result = await _voucherService.GetAllByCustomerAsync();
+            var response = ApiResponse<IEnumerable<VoucherDto>>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
+        }
+
+        [HttpPost("user/voucher/validation")]
+        public async Task<IActionResult> ValidateVoucher(ValidationVoucherRequestDto request)
+        {
+            var result = await _voucherService.ValidateVoucherAsync(request);
+            var response = ApiResponse<dynamic>.Success("Áp dụng voucher thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
         }
         #endregion
     }
