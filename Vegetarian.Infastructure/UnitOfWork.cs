@@ -23,6 +23,8 @@ namespace Vegetarian.Infrastructure
             Category = new CategoryRepo(_context);
             Menu = new MenuRepo(_context);
             Cart = new CartRepo(_context);
+            Voucher = new VoucherRepo(_context);
+            VoucherRedemption = new VoucherRedemptionRepo(_context);
         }
 
         public IUserRepo User { get; }
@@ -37,24 +39,28 @@ namespace Vegetarian.Infrastructure
 
         public ICartRepo Cart { get; }
 
-        public Task BeginTransactionAsync()
+        public IVoucherRepo Voucher { get; }
+
+        public IVoucherRedemptionRepo VoucherRedemption { get; }
+
+        public async Task BeginTransactionAsync()
         {
-            throw new NotImplementedException();
+            await _context.Database.BeginTransactionAsync();
         }
 
-        public Task CommitTransactionAsync()
+        public async Task CommitTransactionAsync()
         {
-            throw new NotImplementedException();
+            await _context.Database.CommitTransactionAsync();
         }
 
-        public Task RollbackTransactionAsync()
+        public async Task RollbackTransactionAsync()
         {
-            throw new NotImplementedException();
+            await _context.Database.RollbackTransactionAsync();
         }
 
-        public Task SaveChangeAsync()
+        public async Task SaveChangeAsync()
         {
-            throw new NotImplementedException();
+            await _context.SaveChangesAsync();
         }
     }
 }

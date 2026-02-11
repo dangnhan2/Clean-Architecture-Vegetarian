@@ -10,6 +10,8 @@ namespace Vegetarian.Application
         ICategoryRepo Category { get; }
         IMenuRepo Menu { get; }
         ICartRepo Cart { get; }
+        IVoucherRepo Voucher { get; }
+        IVoucherRedemptionRepo VoucherRedemption { get; }
         Task SaveChangeAsync();
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();
