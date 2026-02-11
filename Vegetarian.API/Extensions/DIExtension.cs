@@ -3,6 +3,10 @@ using DotNetEnv;
 using Hangfire;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Options;
+using Net.payOS;
+using RedLockNet;
+using RedLockNet.SERedis;
+using RedLockNet.SERedis.Configuration;
 using StackExchange.Redis;
 using System.Security.Principal;
 using Vegetarian.Application;
@@ -11,14 +15,19 @@ using Vegetarian.Application.Implements.Caching;
 using Vegetarian.Application.Implements.External_Service;
 using Vegetarian.Application.Implements.Hangfire;
 using Vegetarian.Application.Implements.Interface;
+using Vegetarian.Application.Implements.Internal_Service.Job.BackgroundJobs;
 using Vegetarian.Application.Implements.Services;
 using Vegetarian.Application.Repositories;
 using Vegetarian.Application.Services.External_Service;
+using Vegetarian.Application.SignalR;
 using Vegetarian.Infrastructure;
 using Vegetarian.Infrastructure.Options;
 using Vegetarian.Infrastructure.Repositories;
+using Vegetarian.Infrastructure.Services.BackgroundJobs;
 using Vegetarian.Infrastructure.Services.Caching;
 using Vegetarian.Infrastructure.Services.Email;
+using Vegetarian.Infrastructure.Services.PayOs;
+using Vegetarian.Infrastructure.Services.SignalR.SignalR_Sender;
 using Vegetarian.Infrastructure.Services.Storage;
 using Vegetarian.Infrastructure.Services.Token;
 
@@ -46,6 +55,13 @@ namespace Vegetarian.API.Extensions
             services.AddScoped<IVoucherRepo, VoucherRepo>();
             services.AddScoped<IVoucherRedemptionRepo, VoucherRedemptionRepo>();
             services.AddScoped<IVoucherService, VoucherService>();
+            services.AddScoped<IOrderRepo, OrderRepo>();
+            services.AddScoped<IOrderService, OrderService>();
+            services.AddScoped<IBackgroundJobsService, BackgroundJobsService>();
+            services.AddScoped<IPayOsService, PayOsService>();
+            services.AddScoped<INotificationRepo, NotificationRepo>();
+            services.AddScoped<INotificationSenderRepo, NotificationSenderService>();
+            services.AddScoped<IHangfireService, HangfireService>();
 
             services.AddTransient<IEmailService, EmailService>();
             services.AddTransient<ICloudinaryService, CloudinaryService>();
@@ -70,27 +86,27 @@ namespace Vegetarian.API.Extensions
                 return new Cloudinary(account);
             });
 
-            //services.AddSingleton<PayOS>(p =>
-            //{
-            //    var options = p.GetRequiredService<IOptions<PayOsOptions>>().Value;
+            services.AddSingleton<PayOS>(p =>
+            {
+                var options = p.GetRequiredService<IOptions<PayOsOptions>>().Value;
 
-            //    var account = new PayOS(
-            //         options.ClientId,
-            //         options.ApiKey,
-            //         options.ChecksumKey
-            //        );
+                var account = new PayOS(
+                     options.ClientId,
+                     options.ApiKey,
+                     options.ChecksumKey
+                    );
 
-            //    return account;
-            //});
+                return account;
+            });
 
-            //services.AddSingleton<IDistributedLockFactory>(sp =>
-            //{
-            //    var multiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
-            //    return RedLockFactory.Create(new List<RedLockMultiplexer>
-            //    {
-            //        new RedLockMultiplexer(multiplexer)
-            //    });
-            //});
+            services.AddSingleton<IDistributedLockFactory>(sp =>
+            {
+                var multiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
+                return RedLockFactory.Create(new List<RedLockMultiplexer>
+                {
+                    new RedLockMultiplexer(multiplexer)
+                });
+            });
 
             return services;
         }

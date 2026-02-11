@@ -7,7 +7,7 @@ using Vegetarian.Domain.Models;
 
 namespace Vegetarian.Application.Repositories
 {
-    public interface IVoucherRedemptionRepo
+    public interface IVoucherRedemptionRepo : IGenericRepo<VoucherRedemption>
     {
         public Task<int> TodayCountAsync(Guid userId, Guid voucherId);
         public Task<VoucherRedemption?> GetVoucherRedemptionsByOrderIdAsync(Guid orderId);

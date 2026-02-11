@@ -1,0 +1,400 @@
+﻿using Hangfire;
+using Microsoft.EntityFrameworkCore;
+using Net.payOS.Types;
+using RedLockNet;
+using Serilog;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Vegetarian.Application.Contants;
+using Vegetarian.Application.Dtos.QueryParams;
+using Vegetarian.Application.Dtos.Request;
+using Vegetarian.Application.Dtos.Response;
+using Vegetarian.Application.Helper;
+using Vegetarian.Application.Implements.Caching;
+using Vegetarian.Application.Implements.External_Service;
+using Vegetarian.Application.Implements.Hangfire;
+using Vegetarian.Application.Implements.Interface;
+using Vegetarian.Application.Implements.Internal_Service.Job.BackgroundJobs;
+using Vegetarian.Application.SignalR;
+using Vegetarian.Domain.Enum;
+using Vegetarian.Domain.Models;
+
+namespace Vegetarian.Application.Implements.Services
+{
+    public class OrderService : IOrderService
+    {
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IPayOsService _paymentGateway;
+        private readonly IDistributedLockFactory _redLockFactory;
+        private readonly int orderCode = int.Parse(DateTimeOffset.Now.ToString("ffffff"));
+        private readonly ICachingService _cachingService;
+        private readonly INotificationSenderRepo _notificationSenderServer;
+        private readonly IHangfireService _hangfireService;
+
+        public OrderService(
+            IUnitOfWork unitOfWork,
+            IPayOsService paymentGateway,
+            IDistributedLockFactory redLockFactory,
+            ICachingService cachingService,
+            INotificationSenderRepo notificationSenderServer,
+            IHangfireService hangfireService)
+        {
+            _unitOfWork = unitOfWork;
+            _paymentGateway = paymentGateway;
+            _redLockFactory = redLockFactory;
+            _cachingService = cachingService;
+            _notificationSenderServer = notificationSenderServer;
+            _hangfireService = hangfireService;
+        }
+
+        public async Task<int> CreateOrderByCODAsync(OrderRequestDto request)
+        {
+            Log.Information("Start to create an order with COD");
+
+            var cart = await _unitOfWork.Cart.GetCartByCustomerAsync(request.UserId) ?? throw new KeyNotFoundException("Giỏ hàng trống / không tồn tại");
+
+            decimal totalAmount = GetSubAmount(cart.CartItems);
+            var newOrder = MappingOrder(request, totalAmount, "COD");
+
+            // add menu to order
+            MappingMenuToOrder(cart.CartItems, newOrder);
+
+            if (request.VoucherId.HasValue)
+            {
+                var resource = $"lock:voucher:{request.VoucherId.Value}";
+                var expiry = TimeSpan.FromSeconds(30);
+
+                Log.Information("Checking voucher running out of slot");
+
+                await using (var redLock = await _redLockFactory.CreateLockAsync(resource, expiry))
+                {
+                    if (!redLock.IsAcquired)
+                        throw new InvalidDataException("Hệ thống đang xử lý voucher này, vui lòng thử lại sau.");
+
+                    await _unitOfWork.BeginTransactionAsync();
+
+                    try
+                    {
+                        var voucher = await _unitOfWork.Voucher.GetByIdAsync(request.VoucherId.Value);
+
+                        if (voucher == null || !voucher.IsActive)
+                            throw new KeyNotFoundException("Voucher không hợp lệ");
+
+                        if (voucher.UsedCount >= voucher.UsageLimit)
+                            throw new InvalidDataException("Voucher đã sử dụng hết");
+
+                        decimal discountValue = voucher.DiscountType == "percent"
+                            ? totalAmount * voucher.DiscountValue / 100
+                            : voucher.DiscountValue;
+
+                        discountValue = Math.Min(discountValue, voucher.MaxDiscount);
+
+                        totalAmount -= discountValue;
+
+                        voucher.UsedCount++;
+
+                        // update voucher used count if it reached limit
+                        if (voucher.UsedCount >= voucher.UsageLimit)
+                            voucher.IsActive = false;
+
+                        //create voucher redemption
+                        await CreateVouherRedemption(request.VoucherId.Value, request.UserId, newOrder.Id, VoucherRedemptionStatus.Used);
+
+                        newOrder.TotalAmount = totalAmount;
+
+                        // update voucher after increase voucher used count
+                        _unitOfWork.Voucher.Update(voucher);
+
+                        // update sold quantity 
+                        await UpdateSoldQuantity(cart.CartItems);
+
+                        _unitOfWork.Cart.Remove(cart);
+
+                        await _unitOfWork.Order.AddAsync(newOrder);
+
+                        await _unitOfWork.SaveChangeAsync();
+                        await _unitOfWork.CommitTransactionAsync();
+                    }
+                    catch
+                    {
+                        await _unitOfWork.RollbackTransactionAsync();
+                        throw;
+                    }
+                }
+            }
+            else
+            {
+                await UpdateSoldQuantity(cart.CartItems);
+                _unitOfWork.Cart.Remove(cart);
+                await _unitOfWork.Order.AddAsync(newOrder);
+                await _unitOfWork.SaveChangeAsync();
+            }
+
+            Log.Information("Send notification to admin");
+            await _notificationSenderServer.NotifyAdminWhenNewOrderCreatedAsync(newOrder.OrderCode, newOrder.TotalAmount);
+
+            Log.Information("Order created");
+            return newOrder.OrderCode;
+        }
+
+        public async Task<PaymentOrderInfoDto> CreateOrderByQRAsync(OrderRequestDto request)
+        {
+            Log.Information("Start to create an order with OR");
+
+            var cart = await _unitOfWork.Cart.GetCartByCustomerAsync(request.UserId) ?? throw new KeyNotFoundException("Giỏ hàng trống / không tồn tại");
+
+            decimal totalAmount = GetSubAmount(cart.CartItems);
+
+            var newOrder = MappingOrder(request, totalAmount, "QR");
+
+            // add menu to order
+            MappingMenuToOrder(cart.CartItems, newOrder);
+
+            // add to list for payment
+            var listItems = AddItemsPayment(cart.CartItems);
+
+            if (request.VoucherId.HasValue)
+            {
+                var resource = $"lock:voucher:{request.VoucherId.Value}";
+                var expiry = TimeSpan.FromSeconds(30);
+
+                await using (var redLock = await _redLockFactory.CreateLockAsync(resource, expiry))
+                {
+                    if (!redLock.IsAcquired)
+                        throw new InvalidDataException("Hệ thống đang xử lý voucher này, vui lòng thử lại sau.");
+
+                    await _unitOfWork.BeginTransactionAsync();
+
+                    try
+                    {
+                        var voucher = await _unitOfWork.Voucher.GetByIdAsync(request.VoucherId.Value);
+
+                        if (voucher == null || !voucher.IsActive)
+                            throw new KeyNotFoundException("Voucher không hợp lệ");
+
+                        if (voucher.UsedCount + voucher.ReservedCount >= voucher.UsageLimit)
+                            throw new InvalidDataException("Voucher đã sử dụng hết");
+
+                        voucher.ReservedCount += 1;
+
+                        decimal discountValue = voucher.DiscountType == "percent"
+                            ? totalAmount * voucher.DiscountValue / 100
+                            : voucher.DiscountValue;
+
+                        discountValue = Math.Min(discountValue, voucher.MaxDiscount);
+
+                        totalAmount -= discountValue;
+
+                        _unitOfWork.Voucher.Update(voucher);
+
+                        newOrder.TotalAmount = totalAmount;
+
+                        //create voucher redemption
+                        await CreateVouherRedemption(request.VoucherId.Value, request.UserId, newOrder.Id, VoucherRedemptionStatus.Pending);
+                        await _unitOfWork.Order.AddAsync(newOrder);
+                        await _unitOfWork.SaveChangeAsync();
+                        await _unitOfWork.CommitTransactionAsync();
+                    }
+                    catch
+                    {
+                        await _unitOfWork.RollbackTransactionAsync();
+                        throw;
+                    }
+                }
+            }
+            else
+            {
+                await _unitOfWork.Order.AddAsync(newOrder);
+                await _unitOfWork.SaveChangeAsync();
+            }
+
+            Log.Information("Create payment link");
+            var response = await _paymentGateway.CreatePaymentLink((int)totalAmount, orderCode, listItems);
+
+            _hangfireService.Schedule<IBackgroundJobsService>(x => x.ScheduleUpdateOrderExpiredJob_10mins(newOrder.Id),
+                TimeSpan.FromMinutes(10));
+
+            return response;
+        }
+
+        public async Task<PagingResponse<OrderDto>> GetAllAsync(OrderParams orderParams)
+        {
+            var orders = _unitOfWork.Order.GetAll();
+
+            var ordersToDTO = orders
+               .OrderByDescending(o => o.OrderDate)
+               .Select(o => new OrderDto
+               {
+                   Id = o.Id,
+                   UserId = o.UserId,
+                   OrderDate = o.OrderDate.FormatDateTimeOffset(),
+                   FullName = o.Address.FullName,
+                   PhoneNumber = o.Address.PhoneNumber,
+                   Address = o.Address.AddressName,
+                   City = o.Address.Province + "," + o.Address.District,
+                   Note = o.Note,
+                   OrderStatus = o.Status,
+                   TotalAmount = o.TotalAmount,
+                   OrderCode = o.OrderCode,
+                   PaymentMethod = o.PaymentMethod,
+                   Menus = o.OrderMenus.Select(m => new OrderMenuDto
+                   {
+                       Id = m.Id,
+                       MenuId = m.MenuId,
+                       MenuName = m.Menus.Name,
+                       MenuImage = m.Menus.ImageUrl,
+                       Quantity = m.Quantity,
+                       UnitPrice = m.UnitPrice,
+                       SubPrice = m.UnitPrice * m.Quantity
+                   }).ToList()
+               })
+               .AsNoTracking();
+
+            if (orderParams.Page != 0 && orderParams.PageSize != 0)
+                ordersToDTO = ordersToDTO.Paging(orderParams.Page, orderParams.PageSize);
+
+            var response = new PagingResponse<OrderDto>(orderParams.Page, orderParams.PageSize, orders.Count(), await ordersToDTO.ToListAsync());
+            return response;
+        }
+
+        public async Task<PagingResponse<OrderDto>> GetAllAsyncByCustomer(Guid userId, OrderParams orderParams)
+        {
+            var orders = _unitOfWork.Order.GetAll().Where(o => o.UserId == userId);
+
+            var ordersToDTO = orders
+               .OrderByDescending(o => o.OrderDate)
+               .AsNoTracking()
+               .Select(o => new OrderDto
+               {
+                   Id = o.Id,
+                   UserId = o.UserId,
+                   OrderDate = o.OrderDate.FormatDateTimeOffset(),
+                   FullName = o.Address.FullName,
+                   PhoneNumber = o.Address.PhoneNumber,
+                   Address = o.Address.AddressName,
+                   OrderStatus = o.Status,
+                   TotalAmount = o.TotalAmount,
+                   OrderCode = o.OrderCode,
+                   Menus = o.OrderMenus.Select(m => new OrderMenuDto
+                   {
+                       Id = m.Id,
+                       MenuId = m.MenuId,
+                       MenuName = m.Menus.Name,
+                       MenuImage = m.Menus.ImageUrl,
+                       Quantity = m.Quantity,
+                       SubPrice = m.UnitPrice * m.Quantity,
+                       IsRated = m.Menus.Ratings.Any(r => r.UserId == o.UserId && r.MenuId == m.MenuId)
+                   }).ToList()
+               });
+
+            if (orderParams.Page != 0 && orderParams.PageSize != 0)
+            {
+                ordersToDTO = ordersToDTO.Paging(orderParams.Page, orderParams.PageSize);
+            }
+
+            return new PagingResponse<OrderDto>(orderParams.Page, orderParams.PageSize, orders.Count(), await ordersToDTO.ToListAsync());
+        }
+
+
+        #region helper method
+        private async Task CreateVouherRedemption(Guid voucherId, Guid userId, Guid orderId, VoucherRedemptionStatus status)
+        {
+            var voucherRedemption = new VoucherRedemption
+            {
+                Id = Guid.NewGuid(),
+                VoucherID = voucherId,
+                UserID = userId,
+                OrderID = orderId,
+                RedeemedAt = DateTimeOffset.UtcNow,
+                VoucherRedemptionStatus = status
+            };
+
+            await _unitOfWork.VoucherRedemption.AddAsync(voucherRedemption);
+        }
+
+        private Order MappingOrder(OrderRequestDto request, decimal total, string type)
+        {
+            var newOrder = new Order
+            {
+                Id = Guid.NewGuid(),
+                UserId = request.UserId,
+                AddressId = request.AddressId,
+                Note = request.Note,
+                TotalAmount = total,
+                PaymentMethod = request.PaymentMethod,
+                OrderCode = orderCode
+            };
+
+            if (type == "QR")
+            {
+                newOrder.ExpiredAt = DateTimeOffset.UtcNow.AddMinutes(10);
+                newOrder.Status = OrderStatus.Pending;
+            }
+            else if (type == "COD")
+            {
+                newOrder.ExpiredAt = null;
+                newOrder.Status = OrderStatus.Paid;
+            }
+            return newOrder;
+        }
+
+        private async Task UpdateSoldQuantity(ICollection<CartItem> cartItems)
+        {
+            foreach (var item in cartItems)
+            {
+                var menu = await _unitOfWork.Menu.GetByIdAsync(item.MenuId);
+
+                if (menu == null) continue;
+                menu.SoldQuantity = menu.SoldQuantity + item.Quantity;
+                await _cachingService.RemoveAsync(CacheKeys.MenuDetail(menu.Id));
+            }
+        }
+
+        private List<ItemData> AddItemsPayment(ICollection<CartItem> cartItems)
+        {
+            List<ItemData> items = new List<ItemData>();
+
+            foreach (var item in cartItems)
+            {
+                items.Add(new ItemData(item.Menu.Name, item.Quantity, (int)item.UnitPrice));
+            }
+
+            return items;
+        }
+
+        private decimal GetSubAmount(ICollection<CartItem> items)
+        {
+            int TAX_RATE = 8;
+            decimal subTotal = 0;
+            foreach (var item in items)
+            {
+                subTotal += item.Quantity * item.UnitPrice;
+            }
+
+            subTotal = subTotal + (subTotal * TAX_RATE) / 100;
+            return subTotal;
+        }
+
+        private void MappingMenuToOrder(ICollection<CartItem> cartItems, Order order)
+        {
+            foreach (var item in cartItems)
+            {
+                var orderItem = new OrderMenus
+                {
+                    Id = Guid.NewGuid(),
+                    OrderId = order.Id,
+                    MenuId = item.MenuId,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice,
+                    SubTotal = item.Quantity * item.UnitPrice
+                };
+
+                order.OrderMenus.Add(orderItem);
+            }
+        }
+        #endregion
+    }
+}

@@ -17,7 +17,7 @@ namespace Vegetarian.Application.Implements.Hangfire
 
         public string Enqueue<T>(Expression<Func<T, Task>> methodCall)
         {
-            return BackgroundJob.Enqueue<T>(methodCall);
+            return BackgroundJob.Enqueue(methodCall);
         }
 
         public void Schedule<T>(Expression<Func<T, Task>> methodCall, TimeSpan delay)

@@ -11,7 +11,7 @@ namespace Vegetarian.API.Extensions
             services.AddDI();
             services.AddSwaggerConfigure();
             services.AddConnection();
-            //services.AddSignalR();
+            services.AddSignalR();
             return services;
         }
     }
