@@ -35,6 +35,8 @@ namespace Vegetarian.Infrastructure.Data
                 {
                     UserName = "admin",
                     Email = adminEmail,
+                    NormalizedEmail = adminEmail.ToUpper(),
+                    PhoneNumber = "",
                     EmailConfirmed = true,
                     IsAdmin = true,
                     ImageUrl = Env.GetString("DEFAULT_AVATAR")

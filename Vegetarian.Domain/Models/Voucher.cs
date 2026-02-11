@@ -22,6 +22,6 @@ namespace Vegetarian.Domain.Models
         public int ReservedCount { get; set; }
         public int? PerUserLimit { get; set; }
         public bool IsActive { get; set; }
-        public ICollection<VoucherRedemption> VoucherRedemptions { get; set; } = new List<VoucherRedemptions>();
+        public ICollection<VoucherRedemption> VoucherRedemptions { get; set; } = new List<VoucherRedemption>();
     }
 }
