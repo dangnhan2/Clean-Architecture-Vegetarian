@@ -9,6 +9,7 @@ namespace Vegetarian.Application
         IEmailOtpRepo EmailOtp { get; }
         ICategoryRepo Category { get; }
         IMenuRepo Menu { get; }
+        ICartRepo Cart { get; }
         Task SaveChangeAsync();
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();

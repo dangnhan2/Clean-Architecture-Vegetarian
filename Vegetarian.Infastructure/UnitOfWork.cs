@@ -22,6 +22,7 @@ namespace Vegetarian.Infrastructure
             EmailOtp = new EmailOtpRepo(_context);
             Category = new CategoryRepo(_context);
             Menu = new MenuRepo(_context);
+            Cart = new CartRepo(_context);
         }
 
         public IUserRepo User { get; }
@@ -33,6 +34,8 @@ namespace Vegetarian.Infrastructure
         public ICategoryRepo Category { get; }
 
         public IMenuRepo Menu  { get; }
+
+        public ICartRepo Cart { get; }
 
         public Task BeginTransactionAsync()
         {

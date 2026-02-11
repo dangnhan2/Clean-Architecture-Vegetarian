@@ -41,7 +41,9 @@ namespace Vegetarian.API.Extensions
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<IMenuRepo, MenuRepo>();
             services.AddScoped<IMenuService, MenuService>();
-            
+            services.AddScoped<ICartRepo, CartRepo>();
+            services.AddScoped<ICartService, CartService>();
+
             services.AddTransient<IEmailService, EmailService>();
             services.AddTransient<ICloudinaryService, CloudinaryService>();
 
