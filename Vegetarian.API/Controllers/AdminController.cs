@@ -17,6 +17,7 @@ namespace Vegetarian.API.Controllers
         private readonly IMenuService _menuService;
         private readonly IUserService _userService;
         private readonly IRatingService _ratingService;
+        private readonly INotificationService _notificationService;
 
         public AdminController(
             ICategoryService categoryService,
@@ -24,7 +25,8 @@ namespace Vegetarian.API.Controllers
             IOrderService orderService,
             IMenuService menuService,
             IUserService userService,
-            IRatingService ratingService)
+            IRatingService ratingService,
+            INotificationService notificationService)
         {
             _categoryService = categoryService;
             _voucherService = voucherService;
@@ -32,6 +34,7 @@ namespace Vegetarian.API.Controllers
             _menuService = menuService;
             _userService = userService;
             _ratingService = ratingService;
+            _notificationService = notificationService;
         }
 
         #region category endpoints
@@ -188,6 +191,42 @@ namespace Vegetarian.API.Controllers
             await _ratingService.ResponseRatingAsync(responseRatingRequest);
             var result = ApiResponse<dynamic>.Success("Phản hồi đánh giá thành công", "", StatusCodes.Status201Created);
             return CreatedAtAction(null, result);
+        }
+        #endregion
+
+
+        #region notification endpoints
+        [HttpGet("notifications")]
+        public async Task<IActionResult> GetNotificationsByAdmin(Guid id)
+        {
+            var result = await _notificationService.GetNotificationsByAdmin(id);
+            var response = ApiResponse<dynamic>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
+        }
+
+        [HttpPut("notifications/marking")]
+        public async Task<IActionResult> MarkAsRead(MarkNotificationRequestDto dto)
+        {
+            await _notificationService.MarkAsReadAsync(dto);
+            var response = ApiResponse<dynamic>.Success("Đánh dấu thành công", "", StatusCodes.Status200OK);
+            return Ok(response);
+        }
+
+        [HttpDelete("notification")]
+        public async Task<IActionResult> DeleteNotification(Guid id)
+        {
+            await _notificationService.DeleteAsync(id);
+            var response = ApiResponse<dynamic>.Success("Xóa thông báo thành công", "", StatusCodes.Status200OK);
+
+            return Ok(response);
+        }
+
+        [HttpGet("notification/unread")]
+        public async Task<IActionResult> GetUnreadNotificationByAdmin(Guid id)
+        {
+            var result = await _notificationService.GetUnReadNotificationsByAdmin(id);
+            var response = ApiResponse<dynamic>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
         }
         #endregion
     }
