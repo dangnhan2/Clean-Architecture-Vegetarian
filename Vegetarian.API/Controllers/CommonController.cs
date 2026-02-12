@@ -19,6 +19,7 @@ namespace Vegetarian.API.Controllers
         private readonly IMenuService _menuService;
         private readonly IUserService _userService;
         private readonly IAddressService _addressService;
+        private readonly IRatingService _ratingService;
 
         public CommonController(
             ICategoryService categoryService,
@@ -27,7 +28,8 @@ namespace Vegetarian.API.Controllers
             IOrderService orderService,
             IMenuService menuService,
             IUserService userService,
-            IAddressService addressService)
+            IAddressService addressService,
+            IRatingService ratingService)
         {
             _categoryService = categoryService;
             _cartService = cartService;
@@ -36,6 +38,7 @@ namespace Vegetarian.API.Controllers
             _menuService = menuService;
             _userService = userService;
             _addressService = addressService;
+            _ratingService = ratingService;
         }
 
         #region category endpoints
@@ -228,6 +231,29 @@ namespace Vegetarian.API.Controllers
             await _addressService.DeleteAsync(id);
             var response = ApiResponse<string>.Success("Xóa thành công", null, StatusCodes.Status200OK);
             return Ok(response);
+        }
+        #endregion
+
+
+        #region rating endpoints
+        [AllowAnonymous]
+        [HttpGet("ratings/menu/{id}")]
+        public async Task<IActionResult> GetAllRatingsByMenuId(Guid id, [FromQuery] RatingParams ratingParams)
+        {
+
+            var result = await _ratingService.GetAllRatingsByMenuAsync(id, ratingParams);
+
+            var response = ApiResponse<dynamic>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
+        }
+
+        [HttpPost("rating")]
+        public async Task<IActionResult> RatingPaidOrder([FromForm] RatingRequestDto request)
+        {
+            await _ratingService.RatingPaidOrderAsync(request);
+
+            var response = ApiResponse<dynamic>.Success("Đánh giá thành công", null, StatusCodes.Status201Created);
+            return CreatedAtAction(null, response);
         }
         #endregion
     }
