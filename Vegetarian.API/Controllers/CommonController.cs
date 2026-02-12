@@ -20,6 +20,7 @@ namespace Vegetarian.API.Controllers
         private readonly IUserService _userService;
         private readonly IAddressService _addressService;
         private readonly IRatingService _ratingService;
+        private readonly IAdvertisementService _advertisementService;
 
         public CommonController(
             ICategoryService categoryService,
@@ -29,7 +30,8 @@ namespace Vegetarian.API.Controllers
             IMenuService menuService,
             IUserService userService,
             IAddressService addressService,
-            IRatingService ratingService)
+            IRatingService ratingService,
+            IAdvertisementService advertisementService)
         {
             _categoryService = categoryService;
             _cartService = cartService;
@@ -39,6 +41,7 @@ namespace Vegetarian.API.Controllers
             _userService = userService;
             _addressService = addressService;
             _ratingService = ratingService;
+            _advertisementService = advertisementService;
         }
 
         #region category endpoints
@@ -254,6 +257,32 @@ namespace Vegetarian.API.Controllers
 
             var response = ApiResponse<dynamic>.Success("Đánh giá thành công", null, StatusCodes.Status201Created);
             return CreatedAtAction(null, response);
+        }
+        #endregion
+
+
+        #region advertisement endpoint
+        [HttpGet("advertisements")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetAdvertisement()
+        {
+            var result = await _advertisementService.GetAdvertisementsAsync();
+            var response = ApiResponse<dynamic>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+
+            return Ok(response);
+        }
+        #endregion
+
+
+        #region search endpoint
+        [AllowAnonymous]
+        [HttpGet("searching")]
+        public async Task<IActionResult> SearchingMenu([FromQuery] SearchRequestDto searchRequest)
+        {
+            var result = await _menuService.SearchMenuAsync(searchRequest);
+
+            var response = ApiResponse<dynamic>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
         }
         #endregion
     }

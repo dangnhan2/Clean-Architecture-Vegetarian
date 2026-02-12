@@ -31,6 +31,7 @@ namespace Vegetarian.Infrastructure
             Rating = new RatingRepo(_context);
             ResponseRating = new ResponseRatingRepo(_context);
             OrderMenu = new OrderMenuRepo(_context);
+            Advertisement = new AdvertisementRepo(_context);    
         }
 
         public IUserRepo User { get; }
@@ -60,6 +61,8 @@ namespace Vegetarian.Infrastructure
         public IResponseRatingRepo ResponseRating { get; }
 
         public IOrderMenuRepo OrderMenu { get; }
+
+        public IAdvertisementRepo Advertisement { get; }
 
         public async Task BeginTransactionAsync()
         {
