@@ -1,4 +1,4 @@
-﻿using Vegetarian.Application.Repositories;
+﻿using Vegetarian.Application.Abstractions.Persistence;
 
 namespace Vegetarian.Application
 {

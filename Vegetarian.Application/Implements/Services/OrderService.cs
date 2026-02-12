@@ -8,17 +8,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Vegetarian.Application.Abstractions.BackgroundJobs;
+using Vegetarian.Application.Abstractions.Caching;
+using Vegetarian.Application.Abstractions.Notifications;
+using Vegetarian.Application.Abstractions.Payment;
 using Vegetarian.Application.Contants;
 using Vegetarian.Application.Dtos.QueryParams;
 using Vegetarian.Application.Dtos.Request;
 using Vegetarian.Application.Dtos.Response;
 using Vegetarian.Application.Helper;
-using Vegetarian.Application.Implements.Caching;
-using Vegetarian.Application.Implements.External_Service;
-using Vegetarian.Application.Implements.Hangfire;
 using Vegetarian.Application.Implements.Interface;
-using Vegetarian.Application.Implements.Internal_Service.Job.BackgroundJobs;
-using Vegetarian.Application.SignalR;
 using Vegetarian.Domain.Enum;
 using Vegetarian.Domain.Models;
 
@@ -27,20 +26,20 @@ namespace Vegetarian.Application.Implements.Services
     public class OrderService : IOrderService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IPayOsService _paymentGateway;
+        private readonly IPaymentGateway _paymentGateway;
         private readonly IDistributedLockFactory _redLockFactory;
         private readonly int orderCode = int.Parse(DateTimeOffset.Now.ToString("ffffff"));
-        private readonly ICachingService _cachingService;
-        private readonly INotificationSenderRepo _notificationSenderServer;
-        private readonly IHangfireService _hangfireService;
+        private readonly ICachingProvider _cachingService;
+        private readonly INotificationSender _notificationSenderServer;
+        private readonly IHangfireJobClient _hangfireService;
 
         public OrderService(
             IUnitOfWork unitOfWork,
-            IPayOsService paymentGateway,
+            IPaymentGateway paymentGateway,
             IDistributedLockFactory redLockFactory,
-            ICachingService cachingService,
-            INotificationSenderRepo notificationSenderServer,
-            IHangfireService hangfireService)
+            ICachingProvider cachingService,
+            INotificationSender notificationSenderServer,
+            IHangfireJobClient hangfireService)
         {
             _unitOfWork = unitOfWork;
             _paymentGateway = paymentGateway;
@@ -214,7 +213,7 @@ namespace Vegetarian.Application.Implements.Services
             Log.Information("Create payment link");
             var response = await _paymentGateway.CreatePaymentLink((int)totalAmount, orderCode, listItems);
 
-            _hangfireService.Schedule<IBackgroundJobsService>(x => x.ScheduleUpdateOrderExpiredJob_10mins(newOrder.Id),
+            _hangfireService.Schedule<IJobs>(x => x.ScheduleUpdateOrderExpiredJob_10mins(newOrder.Id),
                 TimeSpan.FromMinutes(10));
 
             return response;

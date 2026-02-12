@@ -5,7 +5,7 @@ using System.Security.Claims;
 using Vegetarian.API.Extensions;
 using Vegetarian.Infrastructure.Data;
 using Vegetarian.Infrastructure.Options;
-using Vegetarian.Infrastructure.Services.SignalR.SignalR_Hub;
+using Vegetarian.Infrastructure.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 

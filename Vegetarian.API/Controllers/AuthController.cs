@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Vegetarian.Application.Dtos.Request;
 using Vegetarian.Application.Dtos.Response;
-using Vegetarian.Application.Implements.Auth;
+using Vegetarian.Application.Implements.Interface;
 
 namespace Vegetarian.API.Controllers
 {

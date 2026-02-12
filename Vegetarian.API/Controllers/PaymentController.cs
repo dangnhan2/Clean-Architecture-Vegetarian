@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Vegetarian.Application.Abstractions.Payment;
 using Vegetarian.Application.Dtos.Request;
 using Vegetarian.Application.Dtos.Response;
-using Vegetarian.Application.Implements.External_Service;
 
 namespace Vegetarian.API.Controllers
 {
@@ -10,9 +10,9 @@ namespace Vegetarian.API.Controllers
     [ApiController]
     public class PaymentController : ControllerBase
     {
-        private readonly IPayOsService _payOsService;
+        private readonly IPaymentGateway _payOsService;
 
-        public PaymentController(IPayOsService payOsService)
+        public PaymentController(IPaymentGateway payOsService)
         {
             _payOsService = payOsService;
         }

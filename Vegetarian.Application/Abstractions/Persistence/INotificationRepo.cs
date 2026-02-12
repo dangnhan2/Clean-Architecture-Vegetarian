@@ -1,0 +1,14 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Vegetarian.Domain.Models;
+
+namespace Vegetarian.Application.Abstractions.Persistence
+{
+    public interface INotificationRepo : IGenericRepo<Notification>
+    {
+        public void DeleteListOfNotification(List<Guid> notificationIds);
+    }
+}

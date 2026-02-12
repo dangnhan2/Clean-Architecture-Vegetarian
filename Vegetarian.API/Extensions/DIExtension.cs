@@ -10,24 +10,24 @@ using RedLockNet.SERedis.Configuration;
 using StackExchange.Redis;
 using System.Security.Principal;
 using Vegetarian.Application;
-using Vegetarian.Application.Implements.Auth;
-using Vegetarian.Application.Implements.Caching;
-using Vegetarian.Application.Implements.External_Service;
-using Vegetarian.Application.Implements.Hangfire;
+using Vegetarian.Application.Abstractions.BackgroundJobs;
+using Vegetarian.Application.Abstractions.Caching;
+using Vegetarian.Application.Abstractions.Email;
+using Vegetarian.Application.Abstractions.Notifications;
+using Vegetarian.Application.Abstractions.Payment;
+using Vegetarian.Application.Abstractions.Persistence;
+using Vegetarian.Application.Abstractions.Storage;
+using Vegetarian.Application.Abstractions.Token;
 using Vegetarian.Application.Implements.Interface;
-using Vegetarian.Application.Implements.Internal_Service.Job.BackgroundJobs;
 using Vegetarian.Application.Implements.Services;
-using Vegetarian.Application.Repositories;
-using Vegetarian.Application.Services.External_Service;
-using Vegetarian.Application.SignalR;
 using Vegetarian.Infrastructure;
 using Vegetarian.Infrastructure.Options;
 using Vegetarian.Infrastructure.Repositories;
 using Vegetarian.Infrastructure.Services.BackgroundJobs;
 using Vegetarian.Infrastructure.Services.Caching;
 using Vegetarian.Infrastructure.Services.Email;
+using Vegetarian.Infrastructure.Services.Notifications;
 using Vegetarian.Infrastructure.Services.PayOs;
-using Vegetarian.Infrastructure.Services.SignalR.SignalR_Sender;
 using Vegetarian.Infrastructure.Services.Storage;
 using Vegetarian.Infrastructure.Services.Token;
 
@@ -43,8 +43,8 @@ namespace Vegetarian.API.Extensions
             services.AddScoped<IUserRepo, UserRepo>();
             services.AddScoped<IEmailOtpRepo, EmailOtpRepo>();
             services.AddScoped<IRefreshTokenRepo, RefreshTokenRepo>();
-            services.AddScoped<ITokenService, TokenService>();
-            services.AddScoped<IHangfireService, HangfireService>();
+            services.AddScoped<ITokenGenerator, TokenGenerator>();
+            services.AddScoped<IHangfireJobClient, HangfireJobClient>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<ICategoryRepo, CategoryRepo>();
             services.AddScoped<ICategoryService, CategoryService>();
@@ -57,16 +57,16 @@ namespace Vegetarian.API.Extensions
             services.AddScoped<IVoucherService, VoucherService>();
             services.AddScoped<IOrderRepo, OrderRepo>();
             services.AddScoped<IOrderService, OrderService>();
-            services.AddScoped<IBackgroundJobsService, BackgroundJobsService>();
-            services.AddScoped<IPayOsService, PayOsService>();
+            services.AddScoped<IJobs, Jobs>();
+            services.AddScoped<IPaymentGateway, PaymentGateway>();
             services.AddScoped<INotificationRepo, NotificationRepo>();
-            services.AddScoped<INotificationSenderRepo, NotificationSenderService>();
-            services.AddScoped<IHangfireService, HangfireService>();
+            services.AddScoped<INotificationSender, NotificationSender>();
+            services.AddScoped<IHangfireJobClient, HangfireJobClient>();
 
-            services.AddTransient<IEmailService, EmailService>();
-            services.AddTransient<ICloudinaryService, CloudinaryService>();
+            services.AddTransient<IEmailSender, EmailSender>();
+            services.AddTransient<ICloudinaryStorage, CloudinaryStorage>();
 
-            services.AddSingleton<ICachingService, CachingService>();
+            services.AddSingleton<ICachingProvider, CachingProvider>();
             services.AddSingleton<IConnectionMultiplexer>(sp =>
             {
                 var configuration = $"{Env.GetString("REDIS")},abortConnect=false";

@@ -4,12 +4,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Vegetarian.Application.Abstractions.Caching;
 using Vegetarian.Application.Contants;
 using Vegetarian.Application.Dtos.QueryParams;
 using Vegetarian.Application.Dtos.Request;
 using Vegetarian.Application.Dtos.Response;
 using Vegetarian.Application.Helper;
-using Vegetarian.Application.Implements.Caching;
 using Vegetarian.Application.Implements.Interface;
 using Vegetarian.Application.Validator;
 using Vegetarian.Domain.Models;
@@ -19,9 +19,9 @@ namespace Vegetarian.Application.Implements.Services
     public class VoucherService : IVoucherService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly ICachingService _cacheService;
+        private readonly ICachingProvider _cacheService;
         private int TAX_RATE = 8;
-        public VoucherService(IUnitOfWork unitOfWork, ICachingService cacheService)
+        public VoucherService(IUnitOfWork unitOfWork, ICachingProvider cacheService)
         {
             _unitOfWork = unitOfWork;
             _cacheService = cacheService;
