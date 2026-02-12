@@ -17,19 +17,22 @@ namespace Vegetarian.API.Controllers
         private readonly IVoucherService _voucherService;
         private readonly IOrderService _orderService;
         private readonly IMenuService _menuService;
+        private readonly IUserService _userService;
 
         public CommonController(
             ICategoryService categoryService,
             ICartService cartService,
             IVoucherService voucherService,
             IOrderService orderService,
-            IMenuService menuService)
+            IMenuService menuService,
+            IUserService userService)
         {
             _categoryService = categoryService;
             _cartService = cartService;
             _voucherService = voucherService;
             _orderService = orderService;
             _menuService = menuService;
+            _userService = userService;
         }
 
         #region category endpoints
@@ -157,6 +160,26 @@ namespace Vegetarian.API.Controllers
         {
             var result = await _menuService.GetAllMenusOnSaleAsync(menuParams);
             var response = ApiResponse<PagingResponse<MenuDto>>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
+        }
+        #endregion
+
+
+        #region user's account endpoint
+        [HttpPut("user/profile/{id}")]
+        public async Task<IActionResult> UpdateUser(Guid id, [FromForm] UserRequestDto request)
+        {
+            await _userService.UploadProfileAsync(id, request);
+            var response = ApiResponse<string>.Success("Cập nhật thành công", "", StatusCodes.Status200OK);
+            return Ok(response);
+        }
+
+        [HttpGet("user/{id}")]
+        public async Task<IActionResult> GetUserById(Guid id)
+        {
+            var result = await _userService.GetUserByIdAsync(id);
+
+            var response = ApiResponse<UserDto>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
             return Ok(response);
         }
         #endregion

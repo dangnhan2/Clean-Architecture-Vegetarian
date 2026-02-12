@@ -15,17 +15,20 @@ namespace Vegetarian.API.Controllers
         private readonly IVoucherService _voucherService;
         private readonly IOrderService _orderService;
         private readonly IMenuService _menuService;
+        private readonly IUserService _userService;
 
         public AdminController(
             ICategoryService categoryService,
             IVoucherService voucherService,
             IOrderService orderService,
-            IMenuService menuService)
+            IMenuService menuService,
+            IUserService userService)
         {
             _categoryService = categoryService;
             _voucherService = voucherService;
             _orderService = orderService;
             _menuService = menuService;
+            _userService = userService;
         }
 
         #region category endpoints
@@ -140,6 +143,36 @@ namespace Vegetarian.API.Controllers
         {
             await _menuService.DeleteMenuAsync(id);
             var response = ApiResponse<dynamic>.Success("Xóa thành công", "", StatusCodes.Status200OK);
+            return Ok(response);
+        }
+        #endregion
+
+
+        #region user endpoints
+        [HttpGet("users")]
+        public async Task<IActionResult> GetUsers([FromQuery] UserParams userParams)
+        {
+            var result = await _userService.GetAllAsync(userParams);
+            var response = ApiResponse<PagingResponse<UserDto>>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
+        }
+
+        [HttpPut("user_banning/{id}")]
+        public async Task<IActionResult> BanUser(Guid id)
+        {
+            await _userService.BanUserAsync(id);
+
+            var response = ApiResponse<dynamic>.Success("Cập nhật người dùng thành công", "", StatusCodes.Status200OK);
+
+            return Ok(response);
+        }
+
+        [HttpPut("user_unbanning/{id}")]
+        public async Task<IActionResult> UnbanUser(Guid id)
+        {
+            await _userService.UnBanUserAsync(id);
+            var response = ApiResponse<dynamic>.Success("Cập nhật người dùng thành công", "", StatusCodes.Status200OK);
+
             return Ok(response);
         }
         #endregion
