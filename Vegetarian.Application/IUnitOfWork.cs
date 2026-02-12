@@ -15,6 +15,9 @@ namespace Vegetarian.Application
         IOrderRepo Order { get; }
         INotificationRepo Notification { get; }
         IAddressRepo Address { get; }
+        IRatingRepo Rating { get; }
+        IResponseRatingRepo ResponseRating { get; }
+        IOrderMenuRepo OrderMenu { get; }
         Task SaveChangeAsync();
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();

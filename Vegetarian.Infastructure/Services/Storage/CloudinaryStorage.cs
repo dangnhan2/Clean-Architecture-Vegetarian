@@ -2,6 +2,7 @@
 using CloudinaryDotNet.Actions;
 using DotNetEnv;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 using Npgsql.BackendMessages;
 using System;
 using System.Collections.Generic;
@@ -10,6 +11,7 @@ using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
 using Vegetarian.Application.Abstractions.Storage;
+using Vegetarian.Infrastructure.Options;
 
 namespace Vegetarian.Infrastructure.Services.Storage
 {
@@ -19,16 +21,9 @@ namespace Vegetarian.Infrastructure.Services.Storage
         private readonly Cloudinary _cloudinary;
         private const int MaxFileSize = 1 * 1024 * 1024;
 
-        public CloudinaryStorage()
+        public CloudinaryStorage(Cloudinary cloudinary)
         {
-            Env.Load();
-            Account account = new Account
-            {
-                Cloud = Env.GetString("API_NAME"),
-                ApiKey = Env.GetString("API_KEY"),
-                ApiSecret = Env.GetString("API_SECRET")
-            };
-            _cloudinary = new Cloudinary(account);
+            _cloudinary = cloudinary;
         }
 
         public async Task DeleteImage(string url)

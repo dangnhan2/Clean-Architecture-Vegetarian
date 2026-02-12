@@ -16,19 +16,22 @@ namespace Vegetarian.API.Controllers
         private readonly IOrderService _orderService;
         private readonly IMenuService _menuService;
         private readonly IUserService _userService;
+        private readonly IRatingService _ratingService;
 
         public AdminController(
             ICategoryService categoryService,
             IVoucherService voucherService,
             IOrderService orderService,
             IMenuService menuService,
-            IUserService userService)
+            IUserService userService,
+            IRatingService ratingService)
         {
             _categoryService = categoryService;
             _voucherService = voucherService;
             _orderService = orderService;
             _menuService = menuService;
             _userService = userService;
+            _ratingService = ratingService;
         }
 
         #region category endpoints
@@ -174,6 +177,17 @@ namespace Vegetarian.API.Controllers
             var response = ApiResponse<dynamic>.Success("Cập nhật người dùng thành công", "", StatusCodes.Status200OK);
 
             return Ok(response);
+        }
+        #endregion
+
+
+        #region response rating endpoint
+        [HttpPost("rating/responsing")]
+        public async Task<IActionResult> ResponseRating([FromBody] ResponseRatingRequestDto responseRatingRequest)
+        {
+            await _ratingService.ResponseRatingAsync(responseRatingRequest);
+            var result = ApiResponse<dynamic>.Success("Phản hồi đánh giá thành công", "", StatusCodes.Status201Created);
+            return CreatedAtAction(null, result);
         }
         #endregion
     }

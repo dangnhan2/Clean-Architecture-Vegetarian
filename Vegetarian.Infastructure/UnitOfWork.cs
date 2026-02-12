@@ -28,6 +28,9 @@ namespace Vegetarian.Infrastructure
             Order = new OrderRepo(_context);
             Notification = new NotificationRepo(_context);
             Address = new AddressRepo(_context);
+            Rating = new RatingRepo(_context);
+            ResponseRating = new ResponseRatingRepo(_context);
+            OrderMenu = new OrderMenuRepo(_context);
         }
 
         public IUserRepo User { get; }
@@ -51,6 +54,12 @@ namespace Vegetarian.Infrastructure
         public INotificationRepo Notification { get; }
 
         public IAddressRepo Address { get; }
+
+        public IRatingRepo Rating { get; }
+
+        public IResponseRatingRepo ResponseRating { get; }
+
+        public IOrderMenuRepo OrderMenu { get; }
 
         public async Task BeginTransactionAsync()
         {
