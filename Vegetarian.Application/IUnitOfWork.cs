@@ -18,6 +18,7 @@ namespace Vegetarian.Application
         IRatingRepo Rating { get; }
         IResponseRatingRepo ResponseRating { get; }
         IOrderMenuRepo OrderMenu { get; }
+        IAdvertisementRepo Advertisement { get; }
         Task SaveChangeAsync();
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();

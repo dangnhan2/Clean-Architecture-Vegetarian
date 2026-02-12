@@ -11,6 +11,7 @@ namespace Vegetarian.Application.Implements.Interface
 {
     public interface IMenuService
     {
+        public Task<IEnumerable<MenuSearchDto>> SearchMenuAsync(SearchRequestDto requestDto);
         public Task<PagingResponse<MenuDto>> GetAllMenusAsync(MenuParams menuParams);
         public Task<PagingResponse<MenuDto>> GetAllMenusOnSaleAsync(MenuParams menuParams);
         public Task<IEnumerable<MenuDto>> GetFeaturedMenusAsync();

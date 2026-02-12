@@ -18,6 +18,7 @@ namespace Vegetarian.API.Controllers
         private readonly IUserService _userService;
         private readonly IRatingService _ratingService;
         private readonly INotificationService _notificationService;
+        private readonly IAdvertisementService _advertisementService;
 
         public AdminController(
             ICategoryService categoryService,
@@ -26,7 +27,8 @@ namespace Vegetarian.API.Controllers
             IMenuService menuService,
             IUserService userService,
             IRatingService ratingService,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IAdvertisementService advertisementService)
         {
             _categoryService = categoryService;
             _voucherService = voucherService;
@@ -35,6 +37,7 @@ namespace Vegetarian.API.Controllers
             _userService = userService;
             _ratingService = ratingService;
             _notificationService = notificationService;
+            _advertisementService = advertisementService;
         }
 
         #region category endpoints
@@ -227,6 +230,34 @@ namespace Vegetarian.API.Controllers
             var result = await _notificationService.GetUnReadNotificationsByAdmin(id);
             var response = ApiResponse<dynamic>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
             return Ok(response);
+        }
+        #endregion
+
+
+        #region advertisement endpoints
+        [HttpGet("advertisements")]
+        public async Task<IActionResult> GetAllAdvertisements()
+        {
+            var result = await _advertisementService.GetAdvertisementsByAdminAsync();
+
+            var response = ApiResponse<dynamic>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
+        }
+
+        [HttpPost("advertisement")]
+        public async Task<IActionResult> CreateAdvertisement([FromForm] AdvertisementRequestDto advertisementRequest)
+        {
+            await _advertisementService.AddAdvertisementAsync(advertisementRequest);
+            var reponse = ApiResponse<dynamic>.Success("Thêm quảng cáo mới thành công", "", StatusCodes.Status201Created);
+            return CreatedAtAction(nameof(GetAllAdvertisements), reponse);
+        }
+
+        [HttpPut("advertisement/{id}")]
+        public async Task<IActionResult> CreateAdvertisement(Guid id, [FromForm] AdvertisementRequestDto advertisementRequest)
+        {
+            await _advertisementService.UpdateAdvertisementAsync(id, advertisementRequest);
+            var reponse = ApiResponse<dynamic>.Success("Cập nhật quảng cáo thành công", "", StatusCodes.Status200OK);
+            return Ok(reponse);
         }
         #endregion
     }

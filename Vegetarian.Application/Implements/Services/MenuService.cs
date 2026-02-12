@@ -316,6 +316,23 @@ namespace Vegetarian.Application.Implements.Services
             await _unitOfWork.SaveChangeAsync();
         }
 
+        public async Task<IEnumerable<MenuSearchDto>> SearchMenuAsync(SearchRequestDto requestDto)
+        {
+            var menus = _unitOfWork.Menu
+                .GetAll()
+                .Where(m => EF.Functions.ILike(EF.Functions.Unaccent(m.Name), "%" + EF.Functions.Unaccent(requestDto.Keyword) + "%"));
+
+            var menusToDto = menus.Select(m => new MenuSearchDto
+            {
+                Id = m.Id,
+                Name = m.Name,
+                Price = m.IsOnSale ? m.DiscountPrice : m.OriginalPrice,
+                ImageUrl = m.ImageUrl
+            }).Take(5);
+
+            return await menusToDto.ToListAsync();
+        }
+
 
         #region helper method
         private async Task<Menu> MappingMenu(MenuRequestDto request)
@@ -339,7 +356,7 @@ namespace Vegetarian.Application.Implements.Services
             }
 
             return menu;
-        }
+        }      
         #endregion
     }
 }
