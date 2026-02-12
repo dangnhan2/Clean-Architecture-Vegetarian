@@ -18,6 +18,7 @@ namespace Vegetarian.API.Controllers
         private readonly IOrderService _orderService;
         private readonly IMenuService _menuService;
         private readonly IUserService _userService;
+        private readonly IAddressService _addressService;
 
         public CommonController(
             ICategoryService categoryService,
@@ -25,7 +26,8 @@ namespace Vegetarian.API.Controllers
             IVoucherService voucherService,
             IOrderService orderService,
             IMenuService menuService,
-            IUserService userService)
+            IUserService userService,
+            IAddressService addressService)
         {
             _categoryService = categoryService;
             _cartService = cartService;
@@ -33,6 +35,7 @@ namespace Vegetarian.API.Controllers
             _orderService = orderService;
             _menuService = menuService;
             _userService = userService;
+            _addressService = addressService;
         }
 
         #region category endpoints
@@ -180,6 +183,50 @@ namespace Vegetarian.API.Controllers
             var result = await _userService.GetUserByIdAsync(id);
 
             var response = ApiResponse<UserDto>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
+        }
+        #endregion
+
+
+        #region user's address endpoints
+        [HttpGet("user/{id}/addresses")]
+        public async Task<IActionResult> GetAddresses(Guid id)
+        {
+            var result = await _addressService.GetAllByUserAsync(id);
+            var response = ApiResponse<IEnumerable<AddressDto>>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+
+            return Ok(response);
+        }
+
+        [HttpPost("address")]
+        public async Task<IActionResult> AddAddress([FromBody] AddressRequestDto request)
+        {
+            await _addressService.AddAsync(request);
+            var response = ApiResponse<string>.Success("Thêm mới thành công", null, StatusCodes.Status201Created);
+            return CreatedAtAction(null, response);
+        }
+
+        [HttpPut("address/{id}")]
+        public async Task<IActionResult> UpdateAddress(Guid id, [FromBody] AddressRequestDto request)
+        {
+            await _addressService.UpdateAsync(id, request);
+            var response = ApiResponse<string>.Success("Cập nhật thành công", null, StatusCodes.Status200OK);
+            return Ok(response);
+        }
+
+        [HttpPut("address/default/{id}")]
+        public async Task<IActionResult> SetAddressDefault(Guid id)
+        {
+            await _addressService.SetAddressAsDefault(id);
+            var response = ApiResponse<string>.Success("Cập nhật thành công", null, StatusCodes.Status200OK);
+            return Ok(response);
+        }
+
+        [HttpDelete("address/{id}")]
+        public async Task<IActionResult> DeleteAddress(Guid id)
+        {
+            await _addressService.DeleteAsync(id);
+            var response = ApiResponse<string>.Success("Xóa thành công", null, StatusCodes.Status200OK);
             return Ok(response);
         }
         #endregion

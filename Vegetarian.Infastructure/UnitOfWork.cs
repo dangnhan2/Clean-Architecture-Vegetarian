@@ -27,6 +27,7 @@ namespace Vegetarian.Infrastructure
             VoucherRedemption = new VoucherRedemptionRepo(_context);
             Order = new OrderRepo(_context);
             Notification = new NotificationRepo(_context);
+            Address = new AddressRepo(_context);
         }
 
         public IUserRepo User { get; }
@@ -48,6 +49,8 @@ namespace Vegetarian.Infrastructure
         public IOrderRepo Order { get; }
 
         public INotificationRepo Notification { get; }
+
+        public IAddressRepo Address { get; }
 
         public async Task BeginTransactionAsync()
         {
