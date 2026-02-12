@@ -14,6 +14,7 @@ namespace Vegetarian.Application
         IVoucherRedemptionRepo VoucherRedemption { get; }
         IOrderRepo Order { get; }
         INotificationRepo Notification { get; }
+        IAddressRepo Address { get; }
         Task SaveChangeAsync();
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();

@@ -63,6 +63,8 @@ namespace Vegetarian.API.Extensions
             services.AddScoped<INotificationSender, NotificationSender>();
             services.AddScoped<IHangfireJobClient, HangfireJobClient>();
             services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IAddressRepo, AddressRepo>();
+            services.AddScoped<IAddressService, AddressService>();
 
             services.AddTransient<IEmailSender, EmailSender>();
             services.AddTransient<ICloudinaryStorage, CloudinaryStorage>();
