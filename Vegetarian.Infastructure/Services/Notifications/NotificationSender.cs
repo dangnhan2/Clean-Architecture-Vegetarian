@@ -43,7 +43,7 @@ namespace Vegetarian.Infrastructure.Services.Notifications
 
                 // send notification to group admins
                 await _hubContext.Clients.Group("Admins")
-                    .SendAsync("RatineMenu", new NotificationDto
+                    .SendAsync("RatingMenu", new NotificationDto
                     {
                         Id = newNotification.Id,
                         Title = $"Khách hàng {userName} đã đánh giá món {menuName}",
@@ -87,6 +87,25 @@ namespace Vegetarian.Infrastructure.Services.Notifications
             await _unitOfWork.SaveChangeAsync();
         }
 
+        public async Task NotifyCustomerWhenOrderConfirmedAsync(Guid userId,Guid orderId, int orderCode)
+        {
+            var notification = MappingNotificationWhenOrderConfirmed(userId,orderId, orderCode);
+
+            await _hubContext.Clients.User(userId.ToString()).SendAsync("OrderConfirmed", new NotificationDto
+            {
+                Id = notification.Id,
+                Title = $"Đơn hàng #{orderCode} của bạn đã được xác nhận",
+                Message = "",
+                Type = "Order",
+                Data = $"{orderId}",
+                IsRead = false,
+                CreatedAt = DateTimeOffset.UtcNow.FormatDateTimeOffset()
+            });
+
+            await _unitOfWork.Notification.AddAsync(notification);
+            await _unitOfWork.SaveChangeAsync();
+        }
+
 
         #region        
         private Notification MappingNotificationWhenNewOrderCreated(Guid userId, int orderCode)
@@ -119,6 +138,22 @@ namespace Vegetarian.Infrastructure.Services.Notifications
             };
 
             return notification;
+        }
+
+        private Notification MappingNotificationWhenOrderConfirmed(Guid userId, Guid orderId, int orderCode) 
+        {
+            var notification = new Notification
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Tiltle = $"Đơn hàng #{orderCode} của bạn đã được xác nhận",
+                Message = "",
+                Type = "Order",
+                Data = $"{orderId}",
+                IsRead = false
+            };
+
+           return notification;
         }
         #endregion
     }

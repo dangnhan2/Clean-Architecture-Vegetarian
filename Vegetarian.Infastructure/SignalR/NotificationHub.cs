@@ -26,6 +26,7 @@ namespace Vegetarian.Infrastructure.SignalR
             await Groups.AddToGroupAsync(Context.ConnectionId, $"User: {userId}");
         }
 
+
         public override Task OnDisconnectedAsync(Exception? exception)
         {
             return base.OnDisconnectedAsync(exception);

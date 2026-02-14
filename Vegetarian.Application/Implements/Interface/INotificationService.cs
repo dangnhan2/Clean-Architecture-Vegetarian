@@ -10,8 +10,8 @@ namespace Vegetarian.Application.Implements.Interface
 {
     public interface INotificationService
     {
-        public Task<UnreadNotificationDto> GetUnReadNotificationsByAdmin(Guid adminId);
-        public Task<IEnumerable<NotificationDto>> GetNotificationsByAdmin(Guid adminId);
+        public Task<UnreadNotificationDto> GetUnReadNotificationsAsync(Guid userId);
+        public Task<IEnumerable<NotificationDto>> GetNotificationsAsync(Guid userId);
         public Task MarkAsReadAsync(MarkNotificationRequestDto notificationIds);
         public Task DeleteAsync(Guid id);
     }

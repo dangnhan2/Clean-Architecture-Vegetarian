@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Vegetarian.Application;
 using Vegetarian.Application.Abstractions.BackgroundJobs;
+using Vegetarian.Application.Abstractions.Caching;
+using Vegetarian.Application.Contants;
 using Vegetarian.Domain.Enum;
 
 namespace Vegetarian.Infrastructure.Services.BackgroundJobs
@@ -15,11 +17,13 @@ namespace Vegetarian.Infrastructure.Services.BackgroundJobs
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IDistributedLockFactory _redLockFactory;
+        private readonly ICachingProvider _cachingProvider;
 
-        public Jobs(IUnitOfWork unitOfWork, IDistributedLockFactory redLockFactory)
+        public Jobs(IUnitOfWork unitOfWork, IDistributedLockFactory redLockFactory, ICachingProvider cachingProvider)
         {
             _unitOfWork = unitOfWork;
             _redLockFactory = redLockFactory;
+            _cachingProvider = cachingProvider;
         }
 
         public async Task RecurringDeleteExpiredCartsJob_3hours()
@@ -74,30 +78,11 @@ namespace Vegetarian.Infrastructure.Services.BackgroundJobs
             }
         }
 
-        public async Task RecurringPublicVouchersJob_24hours()
+        public async Task RecurringPublicVouchersJob_1hour()
         {
-            // Lấy timezone Việt Nam
-            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
-
-            // Lấy thời điểm hiện tại theo giờ Việt Nam
-            var nowInVn = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
-
-            // Lấy 00:00 hôm nay theo giờ VN
-            var startOfTodayVn = nowInVn.Date;
-            var startOfTomorrowVn = startOfTodayVn.AddDays(1);
-
-            // Convert về UTC để so sánh trong DB (vì DB đang lưu UTC)
-            var startUtc = new DateTimeOffset(startOfTodayVn, TimeSpan.FromHours(7)).ToUniversalTime();
-            var endUtc = new DateTimeOffset(startOfTomorrowVn, TimeSpan.FromHours(7)).ToUniversalTime();
-
-            Log.Information($"VN Range: {startOfTodayVn} -> {startOfTomorrowVn}");
-            Log.Information($"UTC Range: {startUtc} -> {endUtc}");
-
             var vouchers = _unitOfWork.Voucher
                 .GetAll()
-                .Where(v => v.StartDate >= startUtc &&
-                     v.StartDate < endUtc &&
-                     !v.IsActive);
+                .Where(v => v.StartDate <= DateTimeOffset.UtcNow && !v.IsActive);
 
             Log.Information($"Voucher cần active: {vouchers.Count()}");
 
@@ -128,28 +113,11 @@ namespace Vegetarian.Infrastructure.Services.BackgroundJobs
             }
         }
 
-        public async Task RecurringRetrieveVouchersJob_24hours()
+        public async Task RecurringRetrieveVouchersJob_1hour()
         {
-            Log.Information("Starting retrieve voucher...");
-
-            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
-
-            // Giờ hiện tại VN
-            var nowInVn = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
-
-            // 00:00 hôm nay và hôm sau theo VN
-            var startOfTodayVn = nowInVn.Date;
-            var startOfTomorrowVn = startOfTodayVn.AddDays(1);
-
-            // Convert về UTC để query DB (StartDate & EndDate trong DB là UTC)
-            var todayUtc = new DateTimeOffset(startOfTodayVn, TimeSpan.FromHours(7)).ToUniversalTime();
-            var tomorrowUtc = new DateTimeOffset(startOfTomorrowVn, TimeSpan.FromHours(7)).ToUniversalTime();
-
-            Log.Information($"VN Range Ended: < {todayUtc} (UTC end cutoff)");
-
             var vouchers = _unitOfWork.Voucher
                 .GetAll()
-                .Where(v => v.EndDate < todayUtc && v.IsActive);
+                .Where(v => v.EndDate <= DateTimeOffset.UtcNow && v.IsActive);
 
             Log.Information($"Voucher cần thu hồi: {vouchers.Count()}");
 
@@ -167,6 +135,34 @@ namespace Vegetarian.Infrastructure.Services.BackgroundJobs
             }
 
             Log.Information("Finish retrieving voucher");
+        }
+
+        public async Task SchedulePublicVoucher(Guid voucherId)
+        {
+            var voucher = await _unitOfWork.Voucher.GetByIdAsync(voucherId) ?? throw new KeyNotFoundException("Không tìm thấy mã giảm giá");
+
+            if (voucher.EndDate < DateTimeOffset.UtcNow) throw new InvalidDataException("Mã giảm giá đã hết hạn");
+
+            voucher.IsActive = true;
+
+            _unitOfWork.Voucher.Update(voucher);
+            await _unitOfWork.SaveChangeAsync();
+
+            await _cachingProvider.RemoveAsync(CacheKeys.VOUCHER_ACTIVE);
+        }
+
+        public async Task ScheduleRetrieveVoucher(Guid voucherId)
+        {
+            var voucher = await _unitOfWork.Voucher.GetByIdAsync(voucherId) ?? throw new KeyNotFoundException("Không tìm thấy mã giảm giá");
+
+            if (!voucher.IsActive) return;
+
+            voucher.IsActive = false;
+
+            _unitOfWork.Voucher.Update(voucher);
+            await _unitOfWork.SaveChangeAsync();
+
+            await _cachingProvider.RemoveAsync(CacheKeys.VOUCHER_ACTIVE);
         }
 
         public async Task ScheduleUpdateOrderExpiredJob_10mins(Guid orderId)

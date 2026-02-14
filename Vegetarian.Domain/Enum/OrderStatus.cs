@@ -11,5 +11,6 @@ namespace Vegetarian.Domain.Enum
         Pending,       
         Paid,       
         Cancelled,
+        Confirmed,
     }
 }

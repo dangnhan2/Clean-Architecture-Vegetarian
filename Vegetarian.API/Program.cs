@@ -1,8 +1,10 @@
+using Hangfire;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using System.Security.Claims;
 using Vegetarian.API.Extensions;
+using Vegetarian.API.Middleware;
 using Vegetarian.Infrastructure.Data;
 using Vegetarian.Infrastructure.Options;
 using Vegetarian.Infrastructure.SignalR;
@@ -48,8 +50,21 @@ builder.Services.AddAuthentication(opts =>
         opts.ClaimActions.MapJsonKey(ClaimTypes.Email, "email");
         opts.ClaimActions.MapJsonKey("picture", "picture");
     });
+builder.Services.AddAuthorization();
 
+builder.Services.AddCors(o =>
+{
+    o.AddPolicy("Cors",
+        builder =>
+        {
+            builder.WithOrigins("http://localhost:3000")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+        });
+});
 
+builder.Services.AddHangfireServer();
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -67,10 +82,13 @@ await app.ApplyMigrationsAsync();
 await app.SeedAsync();
 
 app.UseHttpsRedirection();
+app.UseCors("Cors");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseMiddleware<GlobalException>();
+app.UseRecurringJobs();
 app.MapHub<NotificationHub>("/hubs/notification");
 app.MapControllers();
 

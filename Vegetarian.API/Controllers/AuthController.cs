@@ -8,7 +8,7 @@ using Vegetarian.Application.Implements.Interface;
 
 namespace Vegetarian.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/auth")]
     [ApiController]
     public class AuthController : ControllerBase
     {
@@ -40,7 +40,7 @@ namespace Vegetarian.API.Controllers
         {
             Env.Load();
             var result = await _authService.GoogleCallBackAsync(HttpContext);
-            return Redirect($"{Env.GetString($"Frontend__URI")}?token={result.AccessToken}");
+            return Redirect($"{Env.GetString($"Frontend__URI")}/auth/processing?token={result.AccessToken}");
         }
 
         [HttpPost("register")]

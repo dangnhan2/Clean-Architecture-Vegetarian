@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Vegetarian.Application.Abstractions.BackgroundJobs;
 using Vegetarian.Application.Abstractions.Caching;
 using Vegetarian.Application.Contants;
 using Vegetarian.Application.Dtos.QueryParams;
@@ -20,11 +21,13 @@ namespace Vegetarian.Application.Implements.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICachingProvider _cacheService;
+        private readonly IHangfireJobClient _hangfireJobClient;
         private int TAX_RATE = 8;
-        public VoucherService(IUnitOfWork unitOfWork, ICachingProvider cacheService)
+        public VoucherService(IUnitOfWork unitOfWork, ICachingProvider cacheService, IHangfireJobClient hangfireJobClient)
         {
             _unitOfWork = unitOfWork;
             _cacheService = cacheService;
+            _hangfireJobClient = hangfireJobClient;
         }
 
         public async Task AddAsync(VoucherRequestDto request)
@@ -34,13 +37,29 @@ namespace Vegetarian.Application.Implements.Services
             if (!result.IsValid)
                 throw new ValidationDictionaryException(result.ToDictionary());
 
-            if (request.IsActive && request.StartDate > DateTimeOffset.UtcNow)
-                throw new ArgumentException("Thời điểm bắt đầu voucher đang khác với giờ hiện tại, hãy sửa lại giờ bắt đầu phù hợp");
+            if (request.StartDate < DateTimeOffset.UtcNow)
+                throw new ArgumentException("Thời điểm bắt đầu voucher đã qua, hãy sửa lại giờ bắt đầu phù hợp");
 
             var newVoucher = MappingVoucher(request);
 
             await _unitOfWork.Voucher.AddAsync(newVoucher);
             await _unitOfWork.SaveChangeAsync();
+
+            if (!newVoucher.IsActive && newVoucher.StartDate > DateTimeOffset.UtcNow)
+            {
+                _hangfireJobClient.Schedule<IJobs>(
+                j => j.SchedulePublicVoucher(newVoucher.Id),
+                newVoucher.StartDate - DateTimeOffset.UtcNow
+                );
+            }
+
+            if (request.EndDate > DateTimeOffset.UtcNow)
+            {
+                _hangfireJobClient.Schedule<IJobs>(
+                 j => j.ScheduleRetrieveVoucher(newVoucher.Id),
+                 newVoucher.EndDate - DateTimeOffset.UtcNow
+                 );
+            }
 
             if (newVoucher.IsActive)
                 await _cacheService.RemoveAsync(CacheKeys.VOUCHER_ACTIVE);
@@ -168,32 +187,49 @@ namespace Vegetarian.Application.Implements.Services
             if (!result.IsValid)
                 throw new ValidationDictionaryException(result.ToDictionary());
 
-            if (request.IsActive && request.StartDate > DateTimeOffset.UtcNow)
+            if (request.StartDate < DateTimeOffset.UtcNow)
                 throw new ArgumentException("Thời điểm bắt đầu voucher đang khác với giờ hiện tại, hãy sửa lại giờ bắt đầu phù hợp");
 
-            var existVoucher = await _unitOfWork.Voucher.GetByIdAsync(voucherId) ?? throw new KeyNotFoundException("Mã giảm giá không tồn tại");
+            var voucher = await _unitOfWork.Voucher.GetByIdAsync(voucherId) ?? throw new KeyNotFoundException("Mã giảm giá không tồn tại");
 
-            var oldIsActive = existVoucher.IsActive;
+            var oldIsActive = voucher.IsActive;
+            var startDate = voucher.StartDate;
 
-            existVoucher.Code = request.Code.ToUpper();
-            existVoucher.Description = $"Hạn sử dụng {request.StartDate.FormatDateTimeOffset()} đến ngày {request.EndDate.FormatDateTimeOffset()}";
-            existVoucher.DiscountType = request.DiscountType;
-            existVoucher.DiscountValue = request.DiscountValue;
-            existVoucher.StartDate = request.StartDate;
-            existVoucher.EndDate = request.EndDate;
-            existVoucher.MaxDiscount = request.MaxDiscount;
-            existVoucher.MinOrderAmount = request.MinOrderAmount;
-            existVoucher.PerUserLimit = request.PerUserLimit;
-            existVoucher.UsedCount = 0;
-            existVoucher.UsageLimit = request.UsageLimit;
-            existVoucher.IsActive = request.IsActive;
+            voucher.Code = request.Code.ToUpper();
+            voucher.Description = $"Hạn sử dụng {request.StartDate.FormatDateTimeOffset()} đến ngày {request.EndDate.FormatDateTimeOffset()}";
+            voucher.DiscountType = request.DiscountType;
+            voucher.DiscountValue = request.DiscountValue;
+            voucher.StartDate = request.StartDate;
+            voucher.EndDate = request.EndDate;
+            voucher.MaxDiscount = request.MaxDiscount;
+            voucher.MinOrderAmount = request.MinOrderAmount;
+            voucher.PerUserLimit = request.PerUserLimit;
+            voucher.UsedCount = 0;
+            voucher.UsageLimit = request.UsageLimit;
+            voucher.IsActive = request.IsActive;
 
             if (oldIsActive != request.IsActive)
                 await _cacheService.RemoveAsync(CacheKeys.VOUCHER_ACTIVE);
 
-            _unitOfWork.Voucher.Update(existVoucher);
-            await _cacheService.RemoveAsync(CacheKeys.VoucherDetail(existVoucher.Id));
+            _unitOfWork.Voucher.Update(voucher);
+            await _cacheService.RemoveAsync(CacheKeys.VoucherDetail(voucher.Id));
             await _unitOfWork.SaveChangeAsync();
+
+            if (!voucher.IsActive && request.StartDate > DateTimeOffset.UtcNow)
+            {  
+                _hangfireJobClient.Schedule<IJobs>(
+                j => j.SchedulePublicVoucher(voucher.Id),
+                voucher.StartDate - DateTimeOffset.UtcNow
+                );
+            }
+
+            if (request.EndDate > DateTimeOffset.UtcNow) 
+            {
+                _hangfireJobClient.Schedule<IJobs>(
+                 j => j.ScheduleRetrieveVoucher(voucher.Id),
+                 voucher.EndDate - DateTimeOffset.UtcNow
+                 );
+            }
         }
 
         public async Task<VoucherValidationDto> ValidateVoucherAsync(ValidationVoucherRequestDto request)
@@ -260,8 +296,8 @@ namespace Vegetarian.Application.Implements.Services
                 Description = $"Hạn sử dụng {request.StartDate.FormatDateTimeOffset()} đến ngày {request.EndDate.FormatDateTimeOffset()}",
                 DiscountType = request.DiscountType,
                 DiscountValue = request.DiscountValue,
-                StartDate = request.StartDate,
-                EndDate = request.StartDate,
+                StartDate = request.StartDate.ToOffset(TimeSpan.Zero),
+                EndDate = request.EndDate.ToOffset(TimeSpan.Zero),
                 MaxDiscount = request.MaxDiscount,
                 MinOrderAmount = request.MinOrderAmount,
                 PerUserLimit = request.PerUserLimit,

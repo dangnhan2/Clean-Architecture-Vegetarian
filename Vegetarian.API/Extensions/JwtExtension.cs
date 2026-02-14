@@ -49,20 +49,20 @@ namespace Vegetarian.API.Extensions
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Env.GetString("SECRET_KEY")))
                 };
 
-                //config.Events = new JwtBearerEvents
-                //{
-                //    OnMessageReceived = conntext =>
-                //    {
-                //        var accessToken = conntext.Request.Query["accessToken"];
+                config.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = conntext =>
+                    {
+                        var accessToken = conntext.Request.Query["accessToken"];
 
-                //        if (!string.IsNullOrEmpty(accessToken) && conntext.HttpContext.Request.Path.StartsWithSegments("/hubs"))
-                //        {
-                //            conntext.Token = accessToken;
-                //        }
+                        if (!string.IsNullOrEmpty(accessToken) && conntext.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                        {
+                            conntext.Token = accessToken;
+                        }
 
-                //        return Task.CompletedTask;
-                //    }
-                //};
+                        return Task.CompletedTask;
+                    }
+                };
             });
             return services;
         }

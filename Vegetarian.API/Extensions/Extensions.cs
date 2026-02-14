@@ -1,4 +1,5 @@
-﻿using Vegetarian.Infrastructure.Data;
+﻿using Hangfire;
+using Vegetarian.Infrastructure.Data;
 
 namespace Vegetarian.API.Extensions
 {
