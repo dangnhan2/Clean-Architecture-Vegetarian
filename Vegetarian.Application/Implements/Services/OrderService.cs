@@ -297,6 +297,20 @@ namespace Vegetarian.Application.Implements.Services
             return new PagingResponse<OrderDto>(orderParams.Page, orderParams.PageSize, orders.Count(), await ordersToDTO.ToListAsync());
         }
 
+        public async Task ConfirmPaidOrderAsync(Guid orderId)
+        {
+            var order = await _unitOfWork.Order.GetByIdAsync(orderId) ?? throw new KeyNotFoundException("Không tìm thấy đơn hàng");
+
+            if (order.Status == OrderStatus.Pending) throw new InvalidDataException("Đơn hàng đang chờ khách hàng thanh toán");
+
+            order.Status = OrderStatus.Confirmed;
+
+            _unitOfWork.Order.Update(order);
+            await _unitOfWork.SaveChangeAsync();
+
+            await _notificationSenderServer.NotifyCustomerWhenOrderConfirmedAsync(order.UserId, order.Id, order.OrderCode);
+        }
+
 
         #region helper method
         private async Task CreateVouherRedemption(Guid voucherId, Guid userId, Guid orderId, VoucherRedemptionStatus status)
@@ -393,7 +407,7 @@ namespace Vegetarian.Application.Implements.Services
 
                 order.OrderMenus.Add(orderItem);
             }
-        }
+        }      
         #endregion
     }
 }

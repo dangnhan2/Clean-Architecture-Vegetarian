@@ -19,6 +19,7 @@ namespace Vegetarian.API.Controllers
         private readonly IRatingService _ratingService;
         private readonly INotificationService _notificationService;
         private readonly IAdvertisementService _advertisementService;
+        private readonly IDashboardViewService _dashboardViewService;
 
         public AdminController(
             ICategoryService categoryService,
@@ -28,7 +29,8 @@ namespace Vegetarian.API.Controllers
             IUserService userService,
             IRatingService ratingService,
             INotificationService notificationService,
-            IAdvertisementService advertisementService)
+            IAdvertisementService advertisementService,
+            IDashboardViewService dashboardViewService)
         {
             _categoryService = categoryService;
             _voucherService = voucherService;
@@ -38,6 +40,7 @@ namespace Vegetarian.API.Controllers
             _ratingService = ratingService;
             _notificationService = notificationService;
             _advertisementService = advertisementService;
+            _dashboardViewService = dashboardViewService;
         }
 
         #region category endpoints
@@ -200,9 +203,9 @@ namespace Vegetarian.API.Controllers
 
         #region notification endpoints
         [HttpGet("notifications")]
-        public async Task<IActionResult> GetNotificationsByAdmin(Guid id)
+        public async Task<IActionResult> GetNotifications(Guid id)
         {
-            var result = await _notificationService.GetNotificationsByAdmin(id);
+            var result = await _notificationService.GetNotificationsAsync(id);
             var response = ApiResponse<dynamic>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
             return Ok(response);
         }
@@ -225,9 +228,9 @@ namespace Vegetarian.API.Controllers
         }
 
         [HttpGet("notification/unread")]
-        public async Task<IActionResult> GetUnreadNotificationByAdmin(Guid id)
+        public async Task<IActionResult> GetUnreadNotification(Guid id)
         {
-            var result = await _notificationService.GetUnReadNotificationsByAdmin(id);
+            var result = await _notificationService.GetUnReadNotificationsAsync(id);
             var response = ApiResponse<dynamic>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
             return Ok(response);
         }
@@ -258,6 +261,17 @@ namespace Vegetarian.API.Controllers
             await _advertisementService.UpdateAdvertisementAsync(id, advertisementRequest);
             var reponse = ApiResponse<dynamic>.Success("Cập nhật quảng cáo thành công", "", StatusCodes.Status200OK);
             return Ok(reponse);
+        }
+        #endregion
+
+
+        #region dashboard endpoint
+        [HttpGet("dashboard")]
+        public async Task<IActionResult> DashBoard()
+        {
+            var result = await _dashboardViewService.GetInfoAsync();
+            var response = ApiResponse<DashboardViewDto>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
         }
         #endregion
     }

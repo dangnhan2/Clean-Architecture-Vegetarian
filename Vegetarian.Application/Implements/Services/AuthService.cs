@@ -350,7 +350,7 @@ namespace Vegetarian.Application.Implements.Services
                 Email = email,
                 NormalizedEmail = email.ToUpper(),
                 PhoneNumber = null,
-                PhoneNumberConfirmed = true,
+                EmailConfirmed = true,
             };
 
             return user;

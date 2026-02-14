@@ -30,10 +30,10 @@ namespace Vegetarian.Application.Implements.Services
             await _unitOfWork.SaveChangeAsync();
         }
 
-        public async Task<IEnumerable<NotificationDto>> GetNotificationsByAdmin(Guid adminId)
+        public async Task<IEnumerable<NotificationDto>> GetNotificationsAsync(Guid userId)
         {
             var notifications = _unitOfWork.Notification
-                .GetAll().Where(n => n.UserId == adminId);
+                .GetAll();
 
             var notificationToDto = await notifications
                 .OrderByDescending(n => n.CreatedAt)
@@ -52,11 +52,11 @@ namespace Vegetarian.Application.Implements.Services
             return notificationToDto;
         }
 
-        public async Task<UnreadNotificationDto> GetUnReadNotificationsByAdmin(Guid adminId)
+        public async Task<UnreadNotificationDto> GetUnReadNotificationsAsync(Guid userId)
         {
             var notifications = _unitOfWork.Notification
                .GetAll()
-               .Where(n => !n.IsRead && n.UserId == adminId)
+               .Where(n => !n.IsRead)
                .Take(99);
 
             var notificationToDto = await notifications

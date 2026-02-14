@@ -15,5 +15,6 @@ namespace Vegetarian.Application.Implements.Interface
         public Task<int> CreateOrderByCODAsync(OrderRequestDto request);
         public Task<PagingResponse<OrderDto>> GetAllAsync(OrderParams orderParams);
         public Task<PagingResponse<OrderDto>> GetAllAsyncByCustomer(Guid userId, OrderParams orderParams);
+        public Task ConfirmPaidOrderAsync(Guid orderId);
     }
 }

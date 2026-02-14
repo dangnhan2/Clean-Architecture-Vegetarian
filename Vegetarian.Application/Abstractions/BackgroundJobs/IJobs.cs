@@ -11,10 +11,12 @@ namespace Vegetarian.Application.Abstractions.BackgroundJobs
         public Task RecurringDeleteExpiredOtpJob_5mins();
         public Task RecurringDeleteExpiredRefreshTokensJob_3months();
         public Task RecurringDeleteExpiredCartsJob_3hours();
-        public Task RecurringPublicVouchersJob_24hours();
-        public Task RecurringRetrieveVouchersJob_24hours();
+        public Task RecurringPublicVouchersJob_1hour();
+        public Task RecurringRetrieveVouchersJob_1hour();
         public Task RecurringResetVoucherRedemptionsJob_24hours();
         public Task RecurringDeleteNotificationsJob_1month();
         public Task ScheduleUpdateOrderExpiredJob_10mins(Guid orderId);
+        public Task SchedulePublicVoucher(Guid voucherId);
+        public Task ScheduleRetrieveVoucher(Guid voucherId);
     }
 }

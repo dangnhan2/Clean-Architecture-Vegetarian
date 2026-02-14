@@ -19,7 +19,7 @@ namespace Vegetarian.Infrastructure.Services.Storage
     {
         private readonly string[] allowedExtensions = { ".jpeg", ".gif", ".png", ".jpg" };
         private readonly Cloudinary _cloudinary;
-        private const int MaxFileSize = 1 * 1024 * 1024;
+        private const int MaxFileSize = 5 * 1024 * 1024;
 
         public CloudinaryStorage(Cloudinary cloudinary)
         {
