@@ -7,7 +7,7 @@ using Vegetarian.Application.Implements.Interface;
 
 namespace Vegetarian.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/admin")]
     [ApiController]
     public class AdminController : ControllerBase
     {
@@ -120,6 +120,14 @@ namespace Vegetarian.API.Controllers
         {
             var result = await _orderService.GetAllAsync(orderParams);
             var response = ApiResponse<PagingResponse<OrderDto>>.Success("Lấy dữ liệu thành công", result, StatusCodes.Status200OK);
+            return Ok(response);
+        }
+
+        [HttpPost("order/{id}/confirm")]
+        public async Task<IActionResult> ConfirmOrder(Guid id)
+        {
+            await _orderService.ConfirmPaidOrderAsync(id);
+            var response = ApiResponse<string>.Success("Xác nhận đơn hàng thành công", "", StatusCodes.Status200OK);
             return Ok(response);
         }
         #endregion

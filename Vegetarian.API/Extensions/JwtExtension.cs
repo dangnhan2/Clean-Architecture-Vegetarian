@@ -53,9 +53,9 @@ namespace Vegetarian.API.Extensions
                 {
                     OnMessageReceived = conntext =>
                     {
-                        var accessToken = conntext.Request.Query["accessToken"];
+                        var accessToken = conntext.Request.Query["access_token"];
 
-                        if (!string.IsNullOrEmpty(accessToken) && conntext.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                        if (!string.IsNullOrEmpty(accessToken) && conntext.HttpContext.Request.Path.StartsWithSegments("/hubs/notification"))
                         {
                             conntext.Token = accessToken;
                         }

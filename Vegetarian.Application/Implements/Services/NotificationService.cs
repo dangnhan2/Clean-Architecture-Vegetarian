@@ -33,10 +33,10 @@ namespace Vegetarian.Application.Implements.Services
         public async Task<IEnumerable<NotificationDto>> GetNotificationsAsync(Guid userId)
         {
             var notifications = _unitOfWork.Notification
-                .GetAll();
+                .GetAll().Where(n => n.UserId == userId);
 
             var notificationToDto = await notifications
-                .OrderByDescending(n => n.CreatedAt)
+                .OrderByDescending(n => n.CreatedAt)              
                 .AsNoTracking()
                 .Select(n => new NotificationDto
                 {
@@ -56,7 +56,7 @@ namespace Vegetarian.Application.Implements.Services
         {
             var notifications = _unitOfWork.Notification
                .GetAll()
-               .Where(n => !n.IsRead)
+               .Where(n => !n.IsRead && n.UserId == userId)
                .Take(99);
 
             var notificationToDto = await notifications

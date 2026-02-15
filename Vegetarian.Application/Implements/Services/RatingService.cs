@@ -75,7 +75,7 @@ namespace Vegetarian.Application.Implements.Services
             var hasPurchased = await _unitOfWork.OrderMenu
                 .GetAll()
                 .AnyAsync(o => o.OrderId == request.OrderId
-                            && o.Orders.Status == OrderStatus.Paid
+                            && o.Orders.Status == OrderStatus.Confirmed
                             && o.MenuId == request.MenuId
                             && o.Orders.UserId == request.UserId);
 
