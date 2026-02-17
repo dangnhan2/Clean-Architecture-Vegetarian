@@ -51,8 +51,6 @@ namespace Vegetarian.Application.Implements.Services
 
         public async Task<int> CreateOrderByCODAsync(OrderRequestDto request)
         {
-            Log.Information("Start to create an order with COD");
-
             var cart = await _unitOfWork.Cart.GetCartByCustomerAsync(request.UserId) ?? throw new KeyNotFoundException("Giỏ hàng trống / không tồn tại");
 
             decimal totalAmount = GetSubAmount(cart.CartItems);
@@ -141,8 +139,6 @@ namespace Vegetarian.Application.Implements.Services
 
         public async Task<PaymentOrderInfoDto> CreateOrderByQRAsync(OrderRequestDto request)
         {
-            Log.Information("Start to create an order with OR");
-
             var cart = await _unitOfWork.Cart.GetCartByCustomerAsync(request.UserId) ?? throw new KeyNotFoundException("Giỏ hàng trống / không tồn tại");
 
             decimal totalAmount = GetSubAmount(cart.CartItems);
@@ -210,8 +206,11 @@ namespace Vegetarian.Application.Implements.Services
                 await _unitOfWork.SaveChangeAsync();
             }
 
-            Log.Information("Create payment link");
+            Log.Information("Creating payment link");
+
             var response = await _paymentGateway.CreatePaymentLink((int)totalAmount, orderCode, listItems);
+
+            Log.Information("Payment link created");
 
             _hangfireService.Schedule<IJobs>(x => x.ScheduleUpdateOrderExpiredJob_10mins(newOrder.Id),
                 TimeSpan.FromMinutes(10));

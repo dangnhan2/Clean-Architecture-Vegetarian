@@ -1,6 +1,18 @@
 version: '3.8'
 
 services:
+  seq:
+    image: datalust/seq:latest
+    container_name: seq
+    environment:
+      - ACCEPT_EULA=Y
+    ports:
+      - "5341:80"  
+    volumes:
+      - seq-data:/data
+    networks:
+      - app_network
+
   vegetarian.database:  
     image: postgres:15-alpine
     container_name: vegetarian.database
@@ -51,6 +63,7 @@ services:
     depends_on:
       - "vegetarian.database"
       - "vegetarian.cache"
+      - "seq"
     
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
@@ -100,3 +113,4 @@ volumes:
   postgres_data:
   redis_data:
   pgadmin-data:
+  seq-data:

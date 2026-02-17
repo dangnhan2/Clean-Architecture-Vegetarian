@@ -11,6 +11,5 @@ namespace Vegetarian.Infrastructure.Options
         public string ClientId { get; set; }
         public string ApiKey { get; set; }
         public string ChecksumKey { get; set; }
-        public string Frontend__URI { get; set; }
     }
 }

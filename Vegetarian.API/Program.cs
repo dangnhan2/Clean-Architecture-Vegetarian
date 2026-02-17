@@ -2,6 +2,7 @@ using Hangfire;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Serilog;
 using System.Security.Claims;
 using Vegetarian.API.Extensions;
 using Vegetarian.API.Middleware;
@@ -14,6 +15,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddExtensions();
+
+builder.Host.UseSerilog((ctx, lc) =>
+    lc.ReadFrom.Configuration(ctx.Configuration)
+    .Enrich.FromLogContext());
 
 builder.Services.Configure<EmailOptions>(
     builder.Configuration.GetSection("EmailOptions"));
