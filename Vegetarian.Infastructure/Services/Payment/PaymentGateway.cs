@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using DotNetEnv;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Net.payOS;
 using Net.payOS.Types;
 using Newtonsoft.Json.Linq;
 using RedLockNet;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,7 +26,6 @@ namespace Vegetarian.Infrastructure.Services.PayOs
         private readonly IUnitOfWork _unitOfWork;
         private readonly PayOS _payOS;
         private readonly INotificationSender _notificationSenderServer;
-        private readonly PayOsOptions _options;
         private readonly IDistributedLockFactory _redLockFactory;
 
 
@@ -32,19 +33,18 @@ namespace Vegetarian.Infrastructure.Services.PayOs
             IUnitOfWork unitOfWork,
             INotificationSender notificationSenderServer,
             PayOS payOS,
-            IOptions<PayOsOptions> options,
             IDistributedLockFactory redLockFactory
             )
         {
             _unitOfWork = unitOfWork;
             _payOS = payOS;
-            _options = options.Value;
             _notificationSenderServer = notificationSenderServer;
             _redLockFactory = redLockFactory;
         }
 
         public async Task<string> CallBack(HttpRequest request)
         {
+            Env.Load();
             using var reader = new StreamReader(request.Body, Encoding.UTF8);
             var rawJson = await reader.ReadToEndAsync();
 
@@ -73,7 +73,7 @@ namespace Vegetarian.Infrastructure.Services.PayOs
             var transactionStr = sb.ToString();
 
             // Compute HMAC SHA256
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_options.ChecksumKey));
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(Env.GetString("Frontend__URI")));
             var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(transactionStr));
             var signatureComputed = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
 
@@ -154,8 +154,10 @@ namespace Vegetarian.Infrastructure.Services.PayOs
 
         public async Task<PaymentOrderInfoDto> CreatePaymentLink(int amount, int orderCode, List<ItemData> data)
         {
-            var returnUrl = _options.Frontend__URI;
-            var cancelUrl = _options.Frontend__URI;
+            Env.Load();
+            var url = Env.GetString("Frontend__URI");
+
+            Log.Information(url);
 
             var paymentLinkRequest = new PaymentData(
                  orderCode: orderCode,
@@ -163,8 +165,8 @@ namespace Vegetarian.Infrastructure.Services.PayOs
                  description: "Thanh toán đơn hàng",
                  items: data,
                  expiredAt: (int)DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds(),
-                 returnUrl: $"{returnUrl}checkout/success?orderCode=${orderCode}&paymentMethod=QR",
-                 cancelUrl: cancelUrl
+                 returnUrl: $"{url}checkout/success?orderCode=${orderCode}&paymentMethod=QR",
+                 cancelUrl: url
             );
 
             var paymentInfo = await _payOS.createPaymentLink(paymentLinkRequest);
@@ -176,6 +178,7 @@ namespace Vegetarian.Infrastructure.Services.PayOs
             };
 
             return response;
+
         }
     }
 }

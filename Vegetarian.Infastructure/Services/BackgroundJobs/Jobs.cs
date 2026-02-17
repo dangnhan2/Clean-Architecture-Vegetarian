@@ -199,6 +199,10 @@ namespace Vegetarian.Infrastructure.Services.BackgroundJobs
                 }
 
             }
+
+            order.Status = OrderStatus.Cancelled;
+            _unitOfWork.Order.Update(order);
+            await _unitOfWork.SaveChangeAsync();
         }
     }
 }
