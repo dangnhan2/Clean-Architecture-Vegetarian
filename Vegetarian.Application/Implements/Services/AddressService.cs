@@ -45,7 +45,7 @@ namespace Vegetarian.Application.Implements.Services
             var address = await _unitOfWork.Address.GetByIdAsync(addressId);
 
             if (address == null)
-                throw new KeyNotFoundException("Địa chỉ không tồn tại");
+                throw new KeyNotFoundException("Không tìm thấy địa chỉ");
 
             if (address.IsDefault)
                 throw new InvalidDataException("Địa chỉ của bạn đang là mặc định, hãy chọn địa chỉ khác làm địa chỉ mặc định");
@@ -112,7 +112,7 @@ namespace Vegetarian.Application.Implements.Services
                 .GetByIdAsync(addressId);
 
             if (address == null)
-                throw new KeyNotFoundException("Địa chỉ không tồn tại");
+                throw new KeyNotFoundException("Không tìm thấy địa chỉ");
 
             var isDefault = address.IsDefault;
 
