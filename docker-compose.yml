@@ -57,13 +57,13 @@ services:
     image: ${DOCKER_REGISTRY-}vegetarianapi
     build:
       context: .
-      dockerfile: Vegetarian.API/Dockerfile
-    env_file:
-      - .env
+      dockerfile: src/Vegetarian.API/Dockerfile
     depends_on:
       - "vegetarian.database"
       - "vegetarian.cache"
       - "seq"
+    env_file:
+      - .env
     
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
