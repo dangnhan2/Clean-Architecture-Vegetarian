@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Vegetarian.Application\Vegetarian.Application.csproj" />
+    <ProjectReference Include="..\..\src\Vegetarian.Application\Vegetarian.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
