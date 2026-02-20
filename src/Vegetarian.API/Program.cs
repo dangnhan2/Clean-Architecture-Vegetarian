@@ -86,7 +86,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 await app.ApplyMigrationsAsync();
 await app.SeedAsync();
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseCors("Cors");
 
 app.UseAuthentication();
