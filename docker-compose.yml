@@ -5,9 +5,7 @@ services:
     image: datalust/seq:latest
     container_name: seq
     environment:
-      - ACCEPT_EULA=Y
-    ports:
-      - "5341:80"  
+      - ACCEPT_EULA=Y 
     volumes:
       - seq-data:/data
     networks:
@@ -17,8 +15,6 @@ services:
     image: postgres:15-alpine
     container_name: vegetarian.database
     restart: always
-    ports:
-      - "5432:5432"
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
@@ -32,8 +28,6 @@ services:
     image: dpage/pgadmin4
     container_name: vegetarian.dbadmin
     restart: always
-    ports:
-      - "8082:80"
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
@@ -66,9 +60,8 @@ services:
       - .env
     
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_HTTP_PORTS=8080
-      - ASPNETCORE_HTTPS_PORTS=8081
       - ConnectionStrings__DefaultConnection=${DefaultConnection}
       - REDIS=${REDIS}
 
