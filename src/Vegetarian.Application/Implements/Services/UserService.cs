@@ -16,6 +16,7 @@ using Vegetarian.Application.Helper;
 using Vegetarian.Application.Implements.Interface;
 using Vegetarian.Application.Validator;
 using Vegetarian.Domain.Models;
+using Vegetarian.Domain.Enum;
 
 namespace Vegetarian.Application.Implements.Services
 {
@@ -88,10 +89,10 @@ namespace Vegetarian.Application.Implements.Services
                         Email = u.Email,
                         IsActive = u.LockoutEnd.HasValue ? false : true,
                         TotalAmountInMonth = u.Orders
-                        .Where(o => o.User.Id == u.Id && o.OrderDate.Month == DateTimeOffset.UtcNow.Month)
+                        .Where(o => o.User.Id == u.Id && o.OrderDate.Month == DateTimeOffset.UtcNow.Month && o.Status == OrderStatus.Confirmed)
                         .Sum(o => o.TotalAmount),
                         TotalAmountInYear = u.Orders
-                        .Where(o => o.User.Id == u.Id && o.OrderDate.Year == DateTimeOffset.UtcNow.Year)
+                        .Where(o => o.User.Id == u.Id && o.OrderDate.Year == DateTimeOffset.UtcNow.Year && o.Status == OrderStatus.Confirmed)
                         .Sum(o => o.TotalAmount)
 
                     })
@@ -126,10 +127,10 @@ namespace Vegetarian.Application.Implements.Services
                 Email = user.Email,
                 IsActive = user.LockoutEnd.HasValue ? false : true,
                 TotalAmountInMonth = user.Orders
-                        .Where(o => o.User.Id == user.Id && o.OrderDate.Month == DateTimeOffset.UtcNow.Month)
+                        .Where(o => o.User.Id == user.Id && o.OrderDate.Month == DateTimeOffset.UtcNow.Month && o.Status == OrderStatus.Confirmed)
                         .Sum(o => o.TotalAmount),
                 TotalAmountInYear = user.Orders
-                        .Where(o => o.User.Id == user.Id && o.OrderDate.Year == DateTimeOffset.UtcNow.Year)
+                        .Where(o => o.User.Id == user.Id && o.OrderDate.Year == DateTimeOffset.UtcNow.Year && o.Status == OrderStatus.Confirmed)
                         .Sum(o => o.TotalAmount)
             };
 

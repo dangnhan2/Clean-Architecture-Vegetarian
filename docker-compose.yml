@@ -10,6 +10,8 @@ services:
       - seq-data:/data
     networks:
       - app_network
+    ports:
+      - "5432:5432"
 
   vegetarian.database:  
     image: postgres:15-alpine
@@ -64,6 +66,7 @@ services:
       - ASPNETCORE_HTTP_PORTS=8080
       - ConnectionStrings__DefaultConnection=${DefaultConnection}
       - REDIS=${REDIS}
+      - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
 
       - CloudinaryOptions__CloudName=${CloudinaryOptions__CloudName}
       - CloudinaryOptions__ApiKey=${CloudinaryOptions__ApiKey}

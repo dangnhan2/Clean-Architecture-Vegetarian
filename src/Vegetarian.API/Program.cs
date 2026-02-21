@@ -2,6 +2,7 @@ using Hangfire;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 using System.Security.Claims;
 using Vegetarian.API.Extensions;
@@ -89,8 +90,8 @@ await app.SeedAsync();
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = 
-    Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor 
-    | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+    ForwardedHeaders.XForwardedFor
+    | ForwardedHeaders.XForwardedProto
 });
 
 app.UseHttpsRedirection();
