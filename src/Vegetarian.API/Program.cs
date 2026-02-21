@@ -86,7 +86,14 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 await app.ApplyMigrationsAsync();
 await app.SeedAsync();
 
-//app.UseHttpsRedirection();
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = 
+    Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor 
+    | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+});
+
+app.UseHttpsRedirection();
 app.UseCors("Cors");
 
 app.UseAuthentication();
