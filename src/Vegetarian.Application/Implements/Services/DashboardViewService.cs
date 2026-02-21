@@ -50,7 +50,7 @@ namespace Vegetarian.Application.Implements.Services
 
             var revenuePaidOrdersMonthly = _unitOfWork.Order
                 .GetAll()
-                .Where(u => u.Status == OrderStatus.Paid && u.OrderDate.Month == month)
+                .Where(u => u.Status == OrderStatus.Confirmed && u.OrderDate.Month == month)
                 .Sum(o => o.TotalAmount);
 
 
@@ -75,7 +75,7 @@ namespace Vegetarian.Application.Implements.Services
             // Get paid orders monthly
             var totalPaidOrdersMonthly = _unitOfWork.Order
                 .GetAll()
-                .Where(o => o.Status == OrderStatus.Paid && o.OrderDate.Month == month)
+                .Where(o => o.Status == OrderStatus.Confirmed && o.OrderDate.Month == month)
                 .Count();
 
             // Get 5 the most spenders monthly
