@@ -63,7 +63,7 @@ builder.Services.AddCors(o =>
     o.AddPolicy("Cors",
         builder =>
         {
-            builder.WithOrigins("http://localhost:3000")
+            builder.WithOrigins("http://localhost:3000", "https://fe.test.ac.vn/")
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();
