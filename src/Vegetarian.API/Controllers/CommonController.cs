@@ -10,6 +10,7 @@ namespace Vegetarian.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize (Roles = "Admin, Customer")]
     public class CommonController : ControllerBase
     {
         private readonly ICategoryService _categoryService;
@@ -109,6 +110,14 @@ namespace Vegetarian.API.Controllers
             var result = await _orderService.CreateOrderByCODAsync(request);
             var response = ApiResponse<int>.Success("Tạo đơn thành công", result, StatusCodes.Status201Created);
             return CreatedAtAction(null, response);
+        }
+
+        [HttpPost("order/{id}/cancel")]
+        public async Task<IActionResult> CancelOrder(Guid id, [FromBody] CancelOrderRequestDto cancelOrderRequest)
+        {
+            await _orderService.CancelPaidOrderAsync(id, cancelOrderRequest);
+            var response = ApiResponse<dynamic>.Success("Hủy đơn hàng thành công", "", StatusCodes.Status200OK);
+            return Ok(response);
         }
         #endregion
 

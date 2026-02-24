@@ -89,7 +89,7 @@ await app.SeedAsync();
 
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
-    ForwardedHeaders = 
+    ForwardedHeaders =
     ForwardedHeaders.XForwardedFor
     | ForwardedHeaders.XForwardedProto
 });

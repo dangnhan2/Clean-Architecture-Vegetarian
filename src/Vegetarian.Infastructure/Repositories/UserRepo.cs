@@ -23,7 +23,7 @@ namespace Vegetarian.Infrastructure.Repositories
             var month = DateTimeOffset.UtcNow.Month;
 
             var topBuyers = await _context.Order
-                            .Where(o => o.OrderDate.Month == month)
+                            .Where(o => o.CreatedAt.Month == month)
                             .GroupBy(o => o.User)
                             .Select(g => new TopBuyerDto
                             {

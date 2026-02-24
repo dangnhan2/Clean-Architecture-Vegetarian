@@ -20,7 +20,7 @@ namespace Vegetarian.Application.Dtos.Response
         public OrderStatus OrderStatus { get; set; }
         public decimal TotalAmount { get; set; }
         public int OrderCode { get; set; }
-        public string PaymentMethod { get; set; }
+        public PaymentMethod PaymentMethod { get; set; }
         public ICollection<OrderMenuDto> Menus { get; set; } = new List<OrderMenuDto>();
     }
 }

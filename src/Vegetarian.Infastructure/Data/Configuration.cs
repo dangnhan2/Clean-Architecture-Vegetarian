@@ -61,6 +61,10 @@ namespace Vegetarian.Infrastructure.Data
                 .Property(a => a.AdTargetType)
                 .HasConversion<string>();
 
+            builder.Entity<Order>()
+                .Property(o => o.PaymentMethod)
+                .HasConversion<string>();
+
             builder.Entity<OrderMenus>()
                 .HasOne(om => om.Menus)
                 .WithMany(om => om.OrderMenus)

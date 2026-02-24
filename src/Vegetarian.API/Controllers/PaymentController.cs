@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using PayOS.Models.Webhooks;
 using Vegetarian.Application.Abstractions.Payment;
 using Vegetarian.Application.Dtos.Request;
 using Vegetarian.Application.Dtos.Response;
@@ -18,9 +19,9 @@ namespace Vegetarian.API.Controllers
         }
 
         [HttpPost("webhook/confirm")]
-        public async Task<IActionResult> ConfirmWebHook([FromBody] WebHookUrlRequestDto request)
+        public async Task<IActionResult> ConfirmWebHook(string webhookUrl)
         {
-            var result = await _payOsService.ConfirmWebHook(request);
+            var result = await _payOsService.ConfirmWebHook(webhookUrl);
 
             return Ok(result);
         }

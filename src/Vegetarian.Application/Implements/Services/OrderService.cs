@@ -1,6 +1,5 @@
 ﻿using Hangfire;
 using Microsoft.EntityFrameworkCore;
-using Net.payOS.Types;
 using RedLockNet;
 using Serilog;
 using System;
@@ -18,6 +17,7 @@ using Vegetarian.Application.Dtos.Request;
 using Vegetarian.Application.Dtos.Response;
 using Vegetarian.Application.Helper;
 using Vegetarian.Application.Implements.Interface;
+using Vegetarian.Application.Validator;
 using Vegetarian.Domain.Enum;
 using Vegetarian.Domain.Models;
 
@@ -54,7 +54,7 @@ namespace Vegetarian.Application.Implements.Services
             var cart = await _unitOfWork.Cart.GetCartByCustomerAsync(request.UserId) ?? throw new KeyNotFoundException("Giỏ hàng trống / không tồn tại");
 
             decimal totalAmount = GetSubAmount(cart.CartItems);
-            var newOrder = MappingOrder(request, totalAmount, "COD");
+            var newOrder = MappingOrder(request, totalAmount);
 
             // add menu to order
             MappingMenuToOrder(cart.CartItems, newOrder);
@@ -143,13 +143,10 @@ namespace Vegetarian.Application.Implements.Services
 
             decimal totalAmount = GetSubAmount(cart.CartItems);
 
-            var newOrder = MappingOrder(request, totalAmount, "QR");
+            var newOrder = MappingOrder(request, totalAmount);
 
             // add menu to order
             MappingMenuToOrder(cart.CartItems, newOrder);
-
-            // add to list for payment
-            var listItems = AddItemsPayment(cart.CartItems);
 
             if (request.VoucherId.HasValue)
             {
@@ -208,7 +205,7 @@ namespace Vegetarian.Application.Implements.Services
 
             Log.Information("Creating payment link");
 
-            var response = await _paymentGateway.CreatePaymentLink((int)totalAmount, orderCode, listItems);
+            var response = await _paymentGateway.CreatePaymentLink((int)totalAmount, orderCode);
 
             Log.Information("Payment link created");
 
@@ -223,12 +220,12 @@ namespace Vegetarian.Application.Implements.Services
             var orders = _unitOfWork.Order.GetAll();
 
             var ordersToDTO = orders
-               .OrderByDescending(o => o.OrderDate)
+               .OrderByDescending(o => o.CreatedAt)
                .Select(o => new OrderDto
                {
                    Id = o.Id,
                    UserId = o.UserId,
-                   OrderDate = o.OrderDate.FormatDateTimeOffset(),
+                   OrderDate = o.CreatedAt.FormatDateTimeOffset(),
                    FullName = o.Address.FullName,
                    PhoneNumber = o.Address.PhoneNumber,
                    Address = o.Address.AddressName,
@@ -263,19 +260,20 @@ namespace Vegetarian.Application.Implements.Services
             var orders = _unitOfWork.Order.GetAll().Where(o => o.UserId == userId);
 
             var ordersToDTO = orders
-               .OrderByDescending(o => o.OrderDate)
+               .OrderByDescending(o => o.CreatedAt)
                .AsNoTracking()
                .Select(o => new OrderDto
                {
                    Id = o.Id,
                    UserId = o.UserId,
-                   OrderDate = o.OrderDate.FormatDateTimeOffset(),
+                   OrderDate = o.CreatedAt.FormatDateTimeOffset(),
                    FullName = o.Address.FullName,
                    PhoneNumber = o.Address.PhoneNumber,
                    Address = o.Address.AddressName,
                    OrderStatus = o.Status,
                    TotalAmount = o.TotalAmount,
                    OrderCode = o.OrderCode,
+                   PaymentMethod = o.PaymentMethod,
                    Menus = o.OrderMenus.Select(m => new OrderMenuDto
                    {
                        Id = m.Id,
@@ -310,6 +308,51 @@ namespace Vegetarian.Application.Implements.Services
             await _notificationSenderServer.NotifyCustomerWhenOrderConfirmedAsync(order.UserId, order.Id, order.OrderCode);
         }
 
+        public async Task CancelPaidOrderAsync(Guid orderId, CancelOrderRequestDto cancelOrderRequest)
+        {   
+            var result = await new CancelOrderRequestValidator().ValidateAsync(cancelOrderRequest);
+
+            if (!result.IsValid)
+                throw new ValidationDictionaryException(result.ToDictionary());
+
+            var order = await _unitOfWork.Order.GetByIdAsync(orderId) ?? throw new KeyNotFoundException("Không tìm thấy đơn hàng");
+
+            if (order.UserId != cancelOrderRequest.UserId)
+                throw new UnauthorizedAccessException("Bạn không có quyền hủy đơn hàng này");
+
+            if (order.Status != OrderStatus.Paid)
+                throw new InvalidDataException("Chỉ có thể hủy đơn hàng ở trạng thái đã thanh toán");
+
+            var cancelDeadline = order.CreatedAt.AddMinutes(5);
+
+            if (cancelDeadline < DateTimeOffset.UtcNow)
+                throw new InvalidDataException("Đơn hàng đã hết hạn hủy");
+
+            if (order.Status == OrderStatus.Cancelled)
+                throw new InvalidDataException("Đơn hàng này đã được hủy");
+
+            await _unitOfWork.BeginTransactionAsync();
+
+            try
+            {
+                order.Status = OrderStatus.Cancelled;
+                order.CancelReason = cancelOrderRequest.Reason;
+
+                _unitOfWork.Order.Update(order);
+                await _unitOfWork.SaveChangeAsync();
+
+                if (order.PaymentMethod == PaymentMethod.QR)              
+                   _hangfireService.Enqueue<IPaymentGateway>(x => x.Payout((int)order.TotalAmount, cancelOrderRequest.BankAccountNumber, cancelOrderRequest.BankBin));                          
+
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                throw;
+            }
+        }
+
 
         #region helper method
         private async Task CreateVouherRedemption(Guid voucherId, Guid userId, Guid orderId, VoucherRedemptionStatus status)
@@ -327,7 +370,7 @@ namespace Vegetarian.Application.Implements.Services
             await _unitOfWork.VoucherRedemption.AddAsync(voucherRedemption);
         }
 
-        private Order MappingOrder(OrderRequestDto request, decimal total, string type)
+        private Order MappingOrder(OrderRequestDto request, decimal total)
         {
             var newOrder = new Order
             {
@@ -336,17 +379,18 @@ namespace Vegetarian.Application.Implements.Services
                 AddressId = request.AddressId,
                 Note = request.Note,
                 TotalAmount = total,
-                PaymentMethod = request.PaymentMethod,
-                OrderCode = orderCode
+                OrderCode = orderCode,
             };
 
-            if (type == "QR")
+            if (request.PaymentMethod == PaymentMethod.QR)
             {
+                newOrder.PaymentMethod = PaymentMethod.QR;
                 newOrder.ExpiredAt = DateTimeOffset.UtcNow.AddMinutes(10);
                 newOrder.Status = OrderStatus.Pending;
             }
-            else if (type == "COD")
+            else if (request.PaymentMethod == PaymentMethod.COD)
             {
+                newOrder.PaymentMethod = PaymentMethod.COD;
                 newOrder.ExpiredAt = null;
                 newOrder.Status = OrderStatus.Paid;
             }
@@ -363,18 +407,6 @@ namespace Vegetarian.Application.Implements.Services
                 menu.SoldQuantity = menu.SoldQuantity + item.Quantity;
                 await _cachingService.RemoveAsync(CacheKeys.MenuDetail(menu.Id));
             }
-        }
-
-        private List<ItemData> AddItemsPayment(ICollection<CartItem> cartItems)
-        {
-            List<ItemData> items = new List<ItemData>();
-
-            foreach (var item in cartItems)
-            {
-                items.Add(new ItemData(item.Menu.Name, item.Quantity, (int)item.UnitPrice));
-            }
-
-            return items;
         }
 
         private decimal GetSubAmount(ICollection<CartItem> items)

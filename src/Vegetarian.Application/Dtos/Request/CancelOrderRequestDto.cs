@@ -7,13 +7,12 @@ using Vegetarian.Domain.Enum;
 
 namespace Vegetarian.Application.Dtos.Request
 {
-    public class OrderRequestDto
-    {
+    public class CancelOrderRequestDto
+    {   
         public Guid UserId { get; set; }
-        public Guid? VoucherId { get; set; }
-        public Guid AddressId { get; set; }
-        public string? Note { get; set; }
+        public string Reason { get; set; } = null!;
         public PaymentMethod PaymentMethod { get; set; }
-        public int TotalAmount { get; set; }
+        public string? BankBin { get; set; } 
+        public string? BankAccountNumber { get; set; }
     }
 }

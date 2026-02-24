@@ -1,30 +1,34 @@
 ﻿using DotNetEnv;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using Net.payOS;
-using Net.payOS.Types;
+using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json.Linq;
+using PayOS;
+using PayOS.Models.V1.Payouts;
+using PayOS.Models.V2.PaymentRequests;
+using PayOS.Models.Webhooks;
 using RedLockNet;
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
+using System.Text.Json;
 using Vegetarian.Application;
 using Vegetarian.Application.Abstractions.Notifications;
 using Vegetarian.Application.Abstractions.Payment;
 using Vegetarian.Application.Dtos.Request;
 using Vegetarian.Domain.Enum;
-using Vegetarian.Infrastructure.Options;
 
-namespace Vegetarian.Infrastructure.Services.PayOs
+
+namespace Vegetarian.Infrastructure.Services.PaymentGateway
 {
     public class PaymentGateway : IPaymentGateway
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly PayOS _payOS;
+        private readonly PayOSClient _payOS;
         private readonly INotificationSender _notificationSenderServer;
         private readonly IDistributedLockFactory _redLockFactory;
 
@@ -32,7 +36,7 @@ namespace Vegetarian.Infrastructure.Services.PayOs
         public PaymentGateway(
             IUnitOfWork unitOfWork,
             INotificationSender notificationSenderServer,
-            PayOS payOS,
+            PayOSClient payOS,
             IDistributedLockFactory redLockFactory
             )
         {
@@ -44,51 +48,39 @@ namespace Vegetarian.Infrastructure.Services.PayOs
 
         public async Task<string> CallBack(HttpRequest request)
         {
-            Env.Load();
-            using var reader = new StreamReader(request.Body, Encoding.UTF8);
-            var rawJson = await reader.ReadToEndAsync();
+            using var reader = new StreamReader(request.Body);
+            var body = await reader.ReadToEndAsync();
 
-            if (string.IsNullOrWhiteSpace(rawJson))
-                throw new ArgumentNullException("Empty body");
+            var webhook = JsonSerializer.Deserialize<Webhook>(
+             body,
+             new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            );
 
-            // Parse JSON
-            var root = JObject.Parse(rawJson);
-            var signatureProvided = root["signature"]?.ToString();
-            var data = root["data"] as JObject;
+            if (webhook?.Data == null)
+                throw new ArgumentNullException(nameof(webhook), "Invalid payload");
 
-            if (string.IsNullOrEmpty(signatureProvided) || data == null)
-                throw new ArgumentNullException("Invalid payload");
+            // Verify signature + parse data (SDK làm)
+            var result = await _payOS.Webhooks.VerifyAsync(webhook);
 
-            // Build transactionStr = key=value&key2=value2...
-            var sorted = data.Properties().OrderBy(p => p.Name, StringComparer.Ordinal).ToList();
+            var orderCode = (int)result.OrderCode;
 
-            var sb = new StringBuilder();
+            var order = await _unitOfWork.Order.GetOrderByOrderCode(orderCode);
 
-            for (int i = 0; i < sorted.Count; i++)
-            {
-                var prop = sorted[i];
-                sb.Append(prop.Name).Append('=').Append(prop.Value.ToString());
-                if (i < sorted.Count - 1) sb.Append('&');
-            }
-            var transactionStr = sb.ToString();
+            if (order == null)
+                throw new KeyNotFoundException("Không tìm thấy order");
 
-            // Compute HMAC SHA256
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(Env.GetString("Frontend__URI")));
-            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(transactionStr));
-            var signatureComputed = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-
-            if (!string.Equals(signatureProvided, signatureComputed, StringComparison.OrdinalIgnoreCase))
-                throw new UnauthorizedAccessException("Invalid signature");
-
-            // check order if success 
-            var code = data["orderCode"]?.ToObject<int>() ?? throw new InvalidDataException("Mã đơn hàng không hợp lệ"); ;
-
-            var order = await _unitOfWork.Order.GetOrderByOrderCode(code);
             if (order == null)
                 throw new KeyNotFoundException("Không tìm thấy order");
 
 
             var voucherRedemption = await _unitOfWork.VoucherRedemption.GetVoucherRedemptionsByOrderIdAsync(order.Id);
+
+            var cart = await _unitOfWork.Cart.GetCartByCustomerAsync(order.UserId);
+
+            if (cart == null)
+                throw new KeyNotFoundException("Giỏ hàng không tồn tại");
+
+            _unitOfWork.Cart.Remove(cart);
 
             if (voucherRedemption != null)
             {
@@ -103,7 +95,7 @@ namespace Vegetarian.Infrastructure.Services.PayOs
 
                 try
                 {
-                    voucherRedemption.VoucherRedemptionStatus = Domain.Enum.VoucherRedemptionStatus.Used;
+                    voucherRedemption.VoucherRedemptionStatus = VoucherRedemptionStatus.Used;
 
                     voucherRedemption.Voucher.ReservedCount--;
                     voucherRedemption.Voucher.UsedCount++;
@@ -113,6 +105,7 @@ namespace Vegetarian.Infrastructure.Services.PayOs
 
                     // Update status after order is paid
                     order.Status = OrderStatus.Paid;
+                    order.CreatedAt = DateTimeOffset.UtcNow;
 
                     // Update sold quantity of each menu in paid order
                     foreach (var menu in order.OrderMenus)
@@ -121,14 +114,8 @@ namespace Vegetarian.Infrastructure.Services.PayOs
 
                         if (item != null)
                             item.SoldQuantity = item.SoldQuantity + menu.Quantity;
-                    }
+                    }    
 
-                    var cart = await _unitOfWork.Cart.GetCartByCustomerAsync(order.UserId);
-
-                    if (cart == null)
-                        throw new KeyNotFoundException("Giỏ hàng không tồn tại");
-
-                    _unitOfWork.Cart.Remove(cart);
                     _unitOfWork.Order.Update(order);
                     await _unitOfWork.SaveChangeAsync();
 
@@ -140,45 +127,76 @@ namespace Vegetarian.Infrastructure.Services.PayOs
                     await _unitOfWork.RollbackTransactionAsync();
                     throw;
                 }
-
             }
-
+            else
+            {
+                order.Status = OrderStatus.Paid;
+                order.CreatedAt = DateTimeOffset.UtcNow;
+                _unitOfWork.Order.Update(order);
+                await _unitOfWork.SaveChangeAsync();
+            }
+            
             return "Webhook processed successfully";
         }
 
-        public async Task<string> ConfirmWebHook(WebHookUrlRequestDto request)
+        public async Task<string> ConfirmWebHook(string webhookUrl)
         {
-            var result = await _payOS.confirmWebhook(request.Url);
-            return result;
+            var result = await _payOS.Webhooks.ConfirmAsync(webhookUrl);
+            return result.WebhookUrl;
         }
 
-        public async Task<PaymentOrderInfoDto> CreatePaymentLink(int amount, int orderCode, List<ItemData> data)
+        public async Task<PaymentOrderInfoDto> CreatePaymentLink(int amount, int orderCode)
         {
             Env.Load();
             var url = Env.GetString("Frontend__URI");
 
             Log.Information(url);
 
-            var paymentLinkRequest = new PaymentData(
-                 orderCode: orderCode,
-                 amount: amount,
-                 description: "Thanh toán đơn hàng",
-                 items: data,
-                 expiredAt: (int)DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds(),
-                 returnUrl: $"{url}checkout/success?orderCode=${orderCode}&paymentMethod=QR",
-                 cancelUrl: url
-            );
+            var paymentLinkRequest = new CreatePaymentLinkRequest
+            {
+                OrderCode = orderCode,
+                Amount = amount,
+                Description = "Thanh toán đơn hàng",
+                ExpiredAt = (int)DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds(),
+                ReturnUrl = $"{url}/checkout/success?orderCode=${orderCode}&paymentMethod=QR",
+                CancelUrl = url
+            };
 
-            var paymentInfo = await _payOS.createPaymentLink(paymentLinkRequest);
+
+            var paymentInfo = await _payOS.PaymentRequests.CreateAsync(paymentLinkRequest);
 
             var response = new PaymentOrderInfoDto
             {
-                CheckoutUrl = paymentInfo.checkoutUrl,
-                OrderCode = (int)paymentInfo.orderCode
+                CheckoutUrl = paymentInfo.CheckoutUrl,
+                OrderCode = (int)paymentInfo.OrderCode
             };
 
             return response;
 
         }
+
+        public async Task<string> Payout(int totalAmount, string accountNumber, string bin)
+        {
+            var payoutRequest = new PayoutRequest
+            {
+                ReferenceId = "payout",
+                Amount = totalAmount,
+                Description = "Hoàn tiền đơn hàng",
+                ToAccountNumber = accountNumber,
+                ToBin = bin
+            };
+
+            var response = await _payOS.Payouts.CreateAsync(payoutRequest);
+
+            if (response.Id != null)
+            {
+                return "Hoàn tiền thành công";
+            }
+            else
+            {
+                return "Hoàn tiền thất bại, vui lòng liên hệ với admin";
+            }
+        }
+
     }
 }
