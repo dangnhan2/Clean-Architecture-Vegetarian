@@ -2,7 +2,6 @@
 using Hangfire;
 using MockQueryable.Moq;
 using Moq;
-using Net.payOS.Types;
 using RedLockNet;
 using System;
 using System.Collections.Generic;
@@ -132,7 +131,7 @@ namespace Vegetarian.Application.UnitTest
                 UserId = Guid.NewGuid(),
                 AddressId = Guid.NewGuid(),
                 Note = "",
-                PaymentMethod = "QR",
+                PaymentMethod = PaymentMethod.QR,
                 TotalAmount = 1000
             };
 
@@ -152,7 +151,7 @@ namespace Vegetarian.Application.UnitTest
                 .Returns(Task.CompletedTask);
 
             _mockPaymentGateway.Setup(x => x.CreatePaymentLink(
-                It.IsAny<int>(), It.IsAny<int>(), It.IsAny<List<ItemData>>()))
+                It.IsAny<int>(), It.IsAny<int>()))
                 .ReturnsAsync(paymentResponse);
 
             // Act
@@ -175,7 +174,7 @@ namespace Vegetarian.Application.UnitTest
                 VoucherId = voucherId,
                 AddressId = Guid.NewGuid(),
                 Note = "",
-                PaymentMethod = "QR",
+                PaymentMethod = PaymentMethod.QR,
                 TotalAmount = 1000
             };
 
@@ -218,7 +217,7 @@ namespace Vegetarian.Application.UnitTest
                 .Returns(Task.CompletedTask);
 
             _mockPaymentGateway.Setup(x => x.CreatePaymentLink(
-                It.IsAny<int>(), It.IsAny<int>(), It.IsAny<List<ItemData>>()))
+                It.IsAny<int>(), It.IsAny<int>()))
                 .ReturnsAsync(new PaymentOrderInfoDto());
 
             // Act
@@ -240,7 +239,7 @@ namespace Vegetarian.Application.UnitTest
                 UserId = Guid.NewGuid(),
                 VoucherId = Guid.NewGuid(),
                 AddressId = Guid.NewGuid(),
-                PaymentMethod = "QR",
+                PaymentMethod = PaymentMethod.QR,
                 TotalAmount = 10000
             };
 
@@ -278,7 +277,7 @@ namespace Vegetarian.Application.UnitTest
                 UserId = Guid.NewGuid(),
                 VoucherId = voucherId,
                 AddressId = Guid.NewGuid(),
-                PaymentMethod = "QR",
+                PaymentMethod = PaymentMethod.QR,
                 TotalAmount = 10000
             };
 
@@ -333,7 +332,7 @@ namespace Vegetarian.Application.UnitTest
                 VoucherId = voucherId,
                 AddressId = Guid.NewGuid(),
                 Note = "",
-                PaymentMethod = "QR",
+                PaymentMethod = PaymentMethod.QR,
                 TotalAmount = 1000
             };
 
@@ -366,7 +365,7 @@ namespace Vegetarian.Application.UnitTest
                 VoucherId = voucherId,
                 AddressId = Guid.NewGuid(),
                 Note = "",
-                PaymentMethod = "QR",
+                PaymentMethod = PaymentMethod.QR,
                 TotalAmount = 1000
             };
 
@@ -422,7 +421,7 @@ namespace Vegetarian.Application.UnitTest
             {
                 UserId = Guid.NewGuid(),
                 AddressId = Guid.NewGuid(),
-                PaymentMethod = "COD"
+                PaymentMethod = PaymentMethod.COD
             };
 
             var cart = CreateSampleCart();
@@ -464,7 +463,7 @@ namespace Vegetarian.Application.UnitTest
             {
                 UserId = Guid.NewGuid(),
                 AddressId = Guid.NewGuid(),
-                PaymentMethod = "COD",
+                PaymentMethod = PaymentMethod.COD,
                 TotalAmount = 10000,
                 Note = ""
             };
@@ -517,7 +516,7 @@ namespace Vegetarian.Application.UnitTest
                 UserId = Guid.NewGuid(),
                 VoucherId = voucherId,
                 AddressId = Guid.NewGuid(),
-                PaymentMethod = "QR",
+                PaymentMethod = PaymentMethod.QR,
                 TotalAmount = 10000
             };
 
@@ -594,11 +593,11 @@ namespace Vegetarian.Application.UnitTest
                     Id = Guid.NewGuid(),
                     UserId = userId,
                     AddressId = addressId,
-                    OrderDate = DateTimeOffset.UtcNow,
+                    CreatedAt = DateTimeOffset.UtcNow,
                     Status = OrderStatus.Pending,
                     TotalAmount = 100,
                     OrderCode = 123456,
-                    PaymentMethod = "QR",
+                    PaymentMethod = PaymentMethod.QR,
                     Address = new Address
                     {
                         Id = addressId,
@@ -631,11 +630,11 @@ namespace Vegetarian.Application.UnitTest
                     Id = Guid.NewGuid(),
                     UserId = Guid.NewGuid(),
                     AddressId = Guid.NewGuid(),
-                    OrderDate = DateTimeOffset.UtcNow.AddDays(-1),
+                    CreatedAt = DateTimeOffset.UtcNow.AddDays(-1),
                     Status = OrderStatus.Paid,
                     TotalAmount = 200,
                     OrderCode = 654321,
-                    PaymentMethod = "COD",
+                    PaymentMethod = PaymentMethod.COD,
                     Address = new Address
                     {
                         Id = Guid.NewGuid(),
@@ -661,7 +660,7 @@ namespace Vegetarian.Application.UnitTest
                     Id = Guid.NewGuid(),
                     UserId = userId,
                     AddressId = Guid.NewGuid(),
-                    OrderDate = DateTimeOffset.UtcNow,
+                    CreatedAt = DateTimeOffset.UtcNow,
                     Status = OrderStatus.Paid,
                     TotalAmount = 100,
                     OrderCode = 123456,

@@ -158,13 +158,10 @@ namespace Vegetarian.Application.Implements.Services
         #region helper method
         private async Task<Advertisement> MappingAdvertisement(AdvertisementRequestDto advertisementRequest)
         {
-            var url = await _cloudinaryService.UploadImage(advertisementRequest.BannerUrl, folder);
-
             var advertisement = new Advertisement
             {
                 Id = Guid.NewGuid(),
                 Title = advertisementRequest.Title,
-                BannerUrl = url,
                 AdTargetType = advertisementRequest.AdTargetType,
                 TargetKey = advertisementRequest.TargetKey,
                 StartAt = advertisementRequest.StartAt,
@@ -172,6 +169,12 @@ namespace Vegetarian.Application.Implements.Services
                 IsActive = advertisementRequest.IsActive,
             };
 
+            if (advertisementRequest.BannerUrl != null)
+            {
+                var url = await _cloudinaryService.UploadImage(advertisementRequest.BannerUrl, folder);
+                advertisement.BannerUrl = url;
+            }
+                 
             return advertisement;
         }
         #endregion

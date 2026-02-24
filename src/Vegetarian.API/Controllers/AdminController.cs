@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Vegetarian.Application.Dtos.QueryParams;
 using Vegetarian.Application.Dtos.Request;
@@ -9,6 +10,7 @@ namespace Vegetarian.API.Controllers
 {
     [Route("api/admin")]
     [ApiController]
+    [Authorize (Roles = "Admin")]
     public class AdminController : ControllerBase
     {
         private readonly ICategoryService _categoryService;

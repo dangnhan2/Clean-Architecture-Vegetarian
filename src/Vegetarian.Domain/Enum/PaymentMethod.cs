@@ -6,13 +6,9 @@ using System.Threading.Tasks;
 
 namespace Vegetarian.Domain.Enum
 {
-    public enum OrderStatus
+    public enum PaymentMethod
     {
-        Pending,       
-        Paid,  
-        Expired,
-        Cancelled,
-        Refund,
-        Confirmed,
+        COD,
+        QR
     }
 }

@@ -184,7 +184,7 @@ namespace Vegetarian.Infrastructure.Services.BackgroundJobs
                     {
                         voucherRedemption.Voucher.ReservedCount--;
 
-                        order.Status = OrderStatus.Cancelled;
+                        order.Status = OrderStatus.Expired;
 
                         _unitOfWork.VoucherRedemption.Remove(voucherRedemption);
                         _unitOfWork.Order.Update(order);
@@ -200,7 +200,7 @@ namespace Vegetarian.Infrastructure.Services.BackgroundJobs
 
             }
 
-            order.Status = OrderStatus.Cancelled;
+            order.Status = OrderStatus.Expired;
             _unitOfWork.Order.Update(order);
             await _unitOfWork.SaveChangeAsync();
         }

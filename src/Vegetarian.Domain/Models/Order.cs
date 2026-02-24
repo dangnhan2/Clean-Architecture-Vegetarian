@@ -17,13 +17,13 @@ namespace Vegetarian.Domain.Models
         public Address Address { get; set; } 
 
         public string? Note { get; set; }
-        public DateTimeOffset OrderDate { get; set; } = DateTimeOffset.UtcNow;
+        public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset? ExpiredAt { get; set; } 
         public OrderStatus Status { get; set; }
         public decimal TotalAmount { get; set; }
-        public string PaymentMethod { get; set; }
+        public PaymentMethod PaymentMethod { get; set; }
         public int OrderCode { get; set; }
-
+        public string CancelReason { get; set; } = "";
         public ICollection<OrderMenus> OrderMenus { get; set; } = new List<OrderMenus>();
         public ICollection<Rating> Ratings { get; set; } = new List<Rating>();
     }

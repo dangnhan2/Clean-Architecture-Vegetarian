@@ -3,7 +3,7 @@ using DotNetEnv;
 using Hangfire;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Options;
-using Net.payOS;
+using PayOS;
 using RedLockNet;
 using RedLockNet.SERedis;
 using RedLockNet.SERedis.Configuration;
@@ -27,7 +27,7 @@ using Vegetarian.Infrastructure.Services.BackgroundJobs;
 using Vegetarian.Infrastructure.Services.Caching;
 using Vegetarian.Infrastructure.Services.Email;
 using Vegetarian.Infrastructure.Services.Notifications;
-using Vegetarian.Infrastructure.Services.PayOs;
+using Vegetarian.Infrastructure.Services.PaymentGateway;
 using Vegetarian.Infrastructure.Services.Storage;
 using Vegetarian.Infrastructure.Services.Token;
 
@@ -97,11 +97,11 @@ namespace Vegetarian.API.Extensions
                 return new Cloudinary(account);
             });
 
-            services.AddSingleton<PayOS>(p =>
+            services.AddSingleton<PayOSClient>(p =>
             {
                 var options = p.GetRequiredService<IOptions<PayOsOptions>>().Value;
 
-                var account = new PayOS(
+                var account = new PayOSClient(
                      options.ClientId,
                      options.ApiKey,
                      options.ChecksumKey

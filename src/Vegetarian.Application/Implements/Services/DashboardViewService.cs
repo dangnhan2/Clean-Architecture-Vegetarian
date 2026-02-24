@@ -25,18 +25,18 @@ namespace Vegetarian.Application.Implements.Services
 
             var totalOrdersToday = _unitOfWork.Order
                 .GetAll()
-                .Count(o => o.OrderDate.Date == today);
+                .Count(o => o.CreatedAt.Date == today);
 
             var cancelledOrdersToday = _unitOfWork.Order
                 .GetAll()
-                .Count(o => o.Status == OrderStatus.Cancelled && o.OrderDate.Date == today);
+                .Count(o => o.Status == OrderStatus.Cancelled && o.CreatedAt.Date == today);
 
             var paidOrders = _unitOfWork.Order
                 .GetAll()
                 .Where(o => o.Status == OrderStatus.Paid);
 
             var totalPaidOrdersToday = paidOrders
-                .Count(o => o.Status == OrderStatus.Paid && o.OrderDate.Date == today);
+                .Count(o => o.Status == OrderStatus.Paid && o.CreatedAt.Date == today);
 
             var totalMenuItems = _unitOfWork.Menu
                 .GetAll()
@@ -50,12 +50,12 @@ namespace Vegetarian.Application.Implements.Services
 
             var revenuePaidOrdersMonthly = _unitOfWork.Order
                 .GetAll()
-                .Where(u => u.Status == OrderStatus.Confirmed && u.OrderDate.Month == month)
+                .Where(u => u.Status == OrderStatus.Confirmed && u.CreatedAt.Month == month)
                 .Sum(o => o.TotalAmount);
 
 
             var totalAmount = paidOrders
-                .Where(o => o.OrderDate.Date == today)
+                .Where(o => o.CreatedAt.Date == today)
                 .Sum(o => o.TotalAmount);
 
             // Get 5 the best menus
@@ -75,7 +75,7 @@ namespace Vegetarian.Application.Implements.Services
             // Get paid orders monthly
             var totalPaidOrdersMonthly = _unitOfWork.Order
                 .GetAll()
-                .Where(o => o.Status == OrderStatus.Confirmed && o.OrderDate.Month == month)
+                .Where(o => o.Status == OrderStatus.Confirmed && o.CreatedAt.Month == month)
                 .Count();
 
             // Get 5 the most spenders monthly
