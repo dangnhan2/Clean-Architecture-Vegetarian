@@ -30,13 +30,13 @@ namespace Vegetarian.API.Controllers
         public async Task<IActionResult> CallBack()
         {
 
-            //var result = await _payOsService.CallBack(Request);
+            var result = await _payOsService.CallBack(Request);
 
-            //var response = ApiResponse<dynamic>.Success("Thanh toán thành công", result, StatusCodes.Status200OK);
+            var response = ApiResponse<dynamic>.Success("Thanh toán thành công", result, StatusCodes.Status200OK);
 
-            //return Ok(response);
+            return Ok(response);
 
-            return new JsonResult(new { }) { StatusCode = 200 };
+            //return new JsonResult(new { }) { StatusCode = 200 };
         }
     }
 }
