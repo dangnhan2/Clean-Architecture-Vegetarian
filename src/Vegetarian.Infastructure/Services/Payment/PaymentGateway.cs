@@ -56,6 +56,7 @@ namespace Vegetarian.Infrastructure.Services.PaymentGateway
              new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
             );
 
+            Log.Information("Information of webhook : {0}", webhook);
             if (webhook?.Data == null)
                 throw new ArgumentNullException(nameof(webhook), "Invalid payload");
 
