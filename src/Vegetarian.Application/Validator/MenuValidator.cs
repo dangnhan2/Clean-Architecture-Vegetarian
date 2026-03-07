@@ -23,7 +23,7 @@ namespace Vegetarian.Application.Validator
                 .GreaterThan(0).WithMessage("Giá gốc phải lớn hơn 0.");
 
             RuleFor(x => x.Description)
-               .MaximumLength(500).WithMessage("Tên món ăn không được vượt quá 500 ký tự.");
+               .MaximumLength(5000).WithMessage("Tên món ăn không được vượt quá 5000 ký tự.");
         }
     }
 }
