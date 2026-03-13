@@ -190,11 +190,21 @@ namespace Vegetarian.Application.Implements.Services
 
         public async Task<IEnumerable<MenuDto>> GetRelatedMenusAsync(Guid menuId)
         {
+            string key = CacheKeys.RelatedMenus(menuId);
+
+            var cached = await _cacheService.GetAsync<IEnumerable<MenuDto>>(key);
+
+            if (cached != null)
+                return cached;
+
             var currentMenu = await _unitOfWork.Menu.GetByIdAsync(menuId);
 
             if (currentMenu == null)
+            {
+                await _cacheService.SetAsync(key, Enumerable.Empty<MenuDto>(), TimeSpan.FromMinutes(60));
                 return Enumerable.Empty<MenuDto>();
-
+            }
+                
             var menus = _unitOfWork.Menu
                 .GetAll()
                 .Where(m =>
@@ -223,6 +233,9 @@ namespace Vegetarian.Application.Implements.Services
                 })
                 .AsNoTracking()
                 .ToListAsync();
+
+            await _cacheService.SetAsync(key, menusToDto, TimeSpan.FromMinutes(60));
+
             return menusToDto;
         }
 
@@ -283,6 +296,9 @@ namespace Vegetarian.Application.Implements.Services
 
             if (request.IsOnSale && (request.DiscountPrice == null || request.DiscountPrice == 0)) throw new ArgumentException("Món ăn đang có trạng thái giảm giá nhưng chưa cập nhật giá giảm. Hãy cập nhập giá giảm");
 
+            if (menu.CategoryId != request.CategoryId)
+                await _cacheService.RemoveAsync(CacheKeys.RelatedMenus(menuId));
+
             menu.Name = request.Name;
             menu.CategoryId = request.CategoryId;
             menu.OriginalPrice = request.OriginalPrice;
@@ -313,7 +329,9 @@ namespace Vegetarian.Application.Implements.Services
             if (menu.IsOnSale || menu.IsAvailable) throw new InvalidOperationException("Món ăn đang được bán, hãy cập nhật lại trạng thái trước khi xóa");
 
             _unitOfWork.Menu.Remove(menu);
+            await _cacheService.RemoveAsync(CacheKeys.RelatedMenus(menuId));
             await _unitOfWork.SaveChangeAsync();
+
         }
 
         public async Task<IEnumerable<MenuSearchDto>> SearchMenuAsync(SearchRequestDto requestDto)
