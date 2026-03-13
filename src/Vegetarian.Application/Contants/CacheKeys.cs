@@ -29,5 +29,9 @@ namespace Vegetarian.Application.Contants
         public static string ADVERTISEMENT_ACTIVE = "advertisement:active";
 
         public static string ADVERTISEMENT_PREFIX = "advertisement";
+
+        public static string RelatedMenus(Guid menuId)
+            => $"menu:related:{menuId}";
+
     }
 }
