@@ -57,7 +57,7 @@ namespace Vegetarian.Application.Implements.Services
             await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
         }
 
-        public async Task ForgotPasswordAsync(ForgotPasswordRequestDto request)
+        public async Task<string> ForgotPasswordAsync(ForgotPasswordRequestDto request)
         {
             var user = await _userManager.FindByEmailAsync(request.Email);
 
@@ -71,6 +71,8 @@ namespace Vegetarian.Application.Implements.Services
             Log.Information("Send email");
 
             SendEmail(user.Id, user.Email, otp);
+
+            return user.Email;
         }
 
         public async Task<AuthResponse> LoginAsync(LoginRequestDto request, HttpContext context)

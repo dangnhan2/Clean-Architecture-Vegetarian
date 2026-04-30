@@ -308,52 +308,6 @@ namespace Vegetarian.Application.Implements.Services
             await _notificationSenderServer.NotifyCustomerWhenOrderConfirmedAsync(order.UserId, order.Id, order.OrderCode);
         }
 
-        public async Task CancelPaidOrderAsync(Guid orderId, CancelOrderRequestDto cancelOrderRequest)
-        {   
-            var result = await new CancelOrderRequestValidator().ValidateAsync(cancelOrderRequest);
-
-            if (!result.IsValid)
-                throw new ValidationDictionaryException(result.ToDictionary());
-
-            var order = await _unitOfWork.Order.GetByIdAsync(orderId) ?? throw new KeyNotFoundException("Không tìm thấy đơn hàng");
-
-            if (order.UserId != cancelOrderRequest.UserId)
-                throw new UnauthorizedAccessException("Bạn không có quyền hủy đơn hàng này");
-
-            if (order.Status != OrderStatus.Paid)
-                throw new InvalidDataException("Chỉ có thể hủy đơn hàng ở trạng thái đã thanh toán");
-
-            var cancelDeadline = order.CreatedAt.AddMinutes(5);
-
-            if (cancelDeadline < DateTimeOffset.UtcNow)
-                throw new InvalidDataException("Đơn hàng đã hết hạn hủy");
-
-            if (order.Status == OrderStatus.Cancelled)
-                throw new InvalidDataException("Đơn hàng này đã được hủy");
-
-            await _unitOfWork.BeginTransactionAsync();
-
-            try
-            {
-                order.Status = OrderStatus.Cancelled;
-                order.CancelReason = cancelOrderRequest.Reason;
-
-                _unitOfWork.Order.Update(order);
-                await _unitOfWork.SaveChangeAsync();
-
-                if (order.PaymentMethod == PaymentMethod.QR)              
-                   _hangfireService.Enqueue<IPaymentGateway>(x => x.Payout((int)order.TotalAmount, cancelOrderRequest.BankAccountNumber, cancelOrderRequest.BankBin));                          
-
-                await _unitOfWork.CommitTransactionAsync();
-            }
-            catch
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                throw;
-            }
-        }
-
-
         #region helper method
         private async Task CreateVouherRedemption(Guid voucherId, Guid userId, Guid orderId, VoucherRedemptionStatus status)
         {

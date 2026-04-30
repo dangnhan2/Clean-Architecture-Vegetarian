@@ -24,5 +24,14 @@ namespace Vegetarian.Infrastructure.Repositories
                 .Include(o => o.OrderMenus)
                 .FirstOrDefaultAsync(o => o.OrderCode == code);
         }
+
+        public async Task DecreasedVoucher(Guid voucherId)
+        {
+            var rowAffected = await _context.Database.ExecuteSqlInterpolatedAsync($@"
+               UPDATE Voucher
+               SET UsedCount = UsedCount + 1
+               Where Id = {voucherId} AND UsedCount < UsageLimit
+            ");
+        }
     }
 }

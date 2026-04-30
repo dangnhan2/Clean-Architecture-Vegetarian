@@ -37,7 +37,7 @@ namespace Vegetarian.Application.Implements.Services
             var menus = _unitOfWork.Menu.GetAll();
 
             if (!string.IsNullOrEmpty(menuParams.Search))
-                menus = menus.Where(m => EF.Functions.ILike(EF.Functions.Unaccent(m.Name), "%" + EF.Functions.Unaccent(menuParams.Search) + "%")
+                menus = menus.Where(m => EF.Functions.ToTsVector("vi_unaccent", m.Name).Matches(EF.Functions.PlainToTsQuery("vi_unaccent", menuParams.Search))
                 || m.Category.Name.Trim().ToLower().Contains(menuParams.Search.Trim().ToLower()));
 
             if (menuParams.From.HasValue && menuParams.To.HasValue)
@@ -69,7 +69,6 @@ namespace Vegetarian.Application.Implements.Services
             }
 
             var menusToDTO = menus
-                .OrderByDescending(m => m.UpdatedAt)
                 .Select(m => new MenuDto
                 {
                     Id = m.Id,
@@ -103,7 +102,7 @@ namespace Vegetarian.Application.Implements.Services
                 .Where(m => m.IsAvailable && m.IsOnSale);
 
             if (!string.IsNullOrEmpty(menuParams.Search))
-                menus = menus.Where(m => EF.Functions.ILike(EF.Functions.Unaccent(m.Name), "%" + EF.Functions.Unaccent(menuParams.Search) + "%")
+                menus = menus.Where(m => EF.Functions.ToTsVector("vi_unaccent", m.Name).Matches(EF.Functions.PlainToTsQuery("vi_unaccent", menuParams.Search))
                 || m.Category.Name.Trim().ToLower().Contains(menuParams.Search.Trim().ToLower()));
 
             if (!string.IsNullOrEmpty(menuParams.SortBy))
@@ -143,9 +142,8 @@ namespace Vegetarian.Application.Implements.Services
                 IsOnSale = m.IsOnSale,
                 CreatedAt = m.CreatedAt,
                 DiscountPercent = m.IsOnSale && m.DiscountPrice.HasValue ? (int)(((m.OriginalPrice - m.DiscountPrice) / m.OriginalPrice) * 100) : 0
-            }
-            )
-                .AsNoTracking();
+            })
+            .AsNoTracking();
 
             if (menuParams.Page != 0 && menuParams.PageSize != 0)
                 menusToDTO = menusToDTO.Paging(menuParams.Page, menuParams.PageSize);
@@ -338,7 +336,7 @@ namespace Vegetarian.Application.Implements.Services
         {
             var menus = _unitOfWork.Menu
                 .GetAll()
-                .Where(m => EF.Functions.ILike(EF.Functions.Unaccent(m.Name), "%" + EF.Functions.Unaccent(requestDto.Keyword) + "%"));
+                .Where(m => EF.Functions.ToTsVector("vi_unaccent", m.Name).Matches(EF.Functions.PlainToTsQuery("vi_unaccent", requestDto.Keyword)));
 
             var menusToDto = menus.Select(m => new MenuSearchDto
             {
