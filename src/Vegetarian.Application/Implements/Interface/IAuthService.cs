@@ -20,7 +20,7 @@ namespace Vegetarian.Application.Implements.Interface
         public Task<string> VerifyEmail(EmailVerifyRequestDto request);
         public Task ResendEmailAsync(ResendEmailRequestDto resendEmailRequest);
         public Task ChangePasswordAsync(PasswordRequestDto request);
-        public Task ForgotPasswordAsync(ForgotPasswordRequestDto request);
+        public Task<string> ForgotPasswordAsync(ForgotPasswordRequestDto request);
         public Task ResetPasswordAsync(ResetPasswordRequestDto request);
     }
 }

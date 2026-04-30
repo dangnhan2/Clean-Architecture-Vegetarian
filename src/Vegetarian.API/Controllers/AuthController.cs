@@ -93,7 +93,7 @@ namespace Vegetarian.API.Controllers
         {
             await _authService.ForgotPasswordAsync(request);
             var response = ApiResponse<dynamic>.Success("Email đã được gửi. Hãy nhập mã để xác nhận", null, StatusCodes.Status200OK);
-            return Ok(request);
+            return Ok(response);
         }
 
         [HttpPost("email/resend")]

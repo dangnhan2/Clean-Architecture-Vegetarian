@@ -54,9 +54,10 @@ namespace Vegetarian.Application.Implements.Services
                     var existItem = cart.CartItems.FirstOrDefault(i => i.MenuId == dish.MenuId);
                     if (existItem != null)
                     {
-                        // Increase/Decrease if quantity > 0 else quantity = 0 => remove
-                        if (dish.Quantity > 0)
-                            existItem.Quantity += dish.Quantity;
+                        var newQuantity = existItem.Quantity + dish.Quantity; // dish.Quantity có thể +1 hoặc -1
+
+                        if (newQuantity > 0)
+                            existItem.Quantity = newQuantity;
                         else
                             cart.CartItems.Remove(existItem);
                     }
